@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { LANGUAGE_ALTERNATES } from "@/lib/locale";
 
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
@@ -26,10 +27,7 @@ export const metadata: Metadata = {
   ],
   alternates: {
     canonical: "/fr",
-    languages: {
-      en: "/",
-      fr: "/fr",
-    },
+    languages: LANGUAGE_ALTERNATES,
   },
   openGraph: {
     title: "Frank Melloul | Melloul & Partners — Conseil stratégique international",

@@ -19,6 +19,12 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       priority: 0.9,
     },
     {
+      url: `${baseUrl}/ar`,
+      lastModified: now,
+      changeFrequency: "weekly",
+      priority: 0.9,
+    },
+    {
       url: `${baseUrl}/communication`,
       lastModified: now,
       changeFrequency: "daily",
@@ -31,7 +37,25 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       priority: 0.6,
     },
     {
+      url: `${baseUrl}/ar/communication`,
+      lastModified: now,
+      changeFrequency: "daily",
+      priority: 0.6,
+    },
+    {
       url: `${baseUrl}/privacy`,
+      lastModified: now,
+      changeFrequency: "yearly",
+      priority: 0.2,
+    },
+    {
+      url: `${baseUrl}/fr/privacy`,
+      lastModified: now,
+      changeFrequency: "yearly",
+      priority: 0.2,
+    },
+    {
+      url: `${baseUrl}/ar/privacy`,
       lastModified: now,
       changeFrequency: "yearly",
       priority: 0.2,
@@ -58,6 +82,12 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
         },
         {
           url: `${baseUrl}/fr/communication/articles/${identifier}`,
+          lastModified: new Date(article.updated_at),
+          changeFrequency: "weekly" as const,
+          priority: 0.7,
+        },
+        {
+          url: `${baseUrl}/ar/communication/articles/${identifier}`,
           lastModified: new Date(article.updated_at),
           changeFrequency: "weekly" as const,
           priority: 0.7,

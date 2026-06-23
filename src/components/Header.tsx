@@ -6,6 +6,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useLanguage } from "@/context/LanguageContext";
 import LanguageSwitcher from "./LanguageSwitcher";
+import { LOCALE_PREFIX, getLocaleFromPath } from "@/lib/locale";
 
 export default function Header() {
   const [isScrolled, setIsScrolled] = useState(false);
@@ -13,8 +14,8 @@ export default function Header() {
   const [hasAnimated, setHasAnimated] = useState(false);
   const { t } = useLanguage();
   const pathname = usePathname();
-  const isFrenchPath = pathname === "/fr" || pathname.startsWith("/fr/");
-  const basePrefix = isFrenchPath ? "/fr" : "";
+  const currentLocale = getLocaleFromPath(pathname);
+  const basePrefix = LOCALE_PREFIX[currentLocale];
   const isHomePage = pathname === (basePrefix || "/");
 
   // Mark animations as complete after first render

@@ -76,7 +76,7 @@ export async function generateMetadata({
     description: ogDesc,
     alternates: {
       canonical: "/fr/communication",
-      languages: { en: "/communication", fr: "/fr/communication" },
+      languages: { en: "/communication", fr: "/fr/communication", ar: "/ar/communication" },
     },
     openGraph: {
       title: ogTitle,

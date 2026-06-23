@@ -102,7 +102,7 @@ export default function RootLayout({
         "@id": `${origin}/#website`,
         url: `${origin}/`,
         name: "Melloul & Partners",
-        inLanguage: ["en", "fr"],
+        inLanguage: ["en", "fr", "ar"],
         publisher: { "@id": `${origin}/#organization` },
       },
       {
@@ -154,7 +154,7 @@ export default function RootLayout({
         "@id": `${origin}/#profilepage`,
         url: `${origin}/`,
         name: "Frank Melloul — Melloul & Partners",
-        inLanguage: ["en", "fr"],
+        inLanguage: ["en", "fr", "ar"],
         isPartOf: { "@id": `${origin}/#website` },
         mainEntity: { "@id": `${origin}/#frank-melloul` },
       },
@@ -169,7 +169,8 @@ export default function RootLayout({
           dangerouslySetInnerHTML={{
             __html: `
               (function() {
-                document.documentElement.lang = location.pathname.startsWith('/fr') ? 'fr' : 'en';
+                document.documentElement.lang = location.pathname.startsWith('/ar') ? 'ar' : location.pathname.startsWith('/fr') ? 'fr' : 'en';
+                document.documentElement.dir = location.pathname.startsWith('/ar') ? 'rtl' : 'ltr';
                 if (!document.querySelector('link[rel="preload"][href="/only_gold_logo.png"]')) {
                   const link1 = document.createElement('link');
                   link1.rel = 'preload';

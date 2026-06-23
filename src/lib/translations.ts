@@ -1,4 +1,6 @@
-export type Locale = "en" | "fr";
+import type { Locale } from "./locale";
+
+export type { Locale };
 
 export const translations = {
   en: {
@@ -15,6 +17,10 @@ export const translations = {
       founderName: "Frank Melloul",
       companyName: "MELLOUL & Partners",
       globalAdvisory: "Global Advisory",
+      taglinePart1: "Strategy for ",
+      taglineHighlight1: "Influence",
+      taglinePart2: " and ",
+      taglineHighlight2: "Diplomacy",
       title: "Empowers leaders to shape agendas, unlock opportunities, and create lasting impact.",
       discover: "Discover",
       // Words to highlight in gold
@@ -113,6 +119,7 @@ export const translations = {
         "A diplomat by training, Frank Melloul began his career in the service of the French state. In 2001, he took on roles at the Ministry of Foreign Affairs, focusing on strategic affairs and international crisis management. He later served as a communications advisor within the French government, notably to Prime Minister Dominique de Villepin from 2005 to 2007, contributing to France's international strategy. In 2010, he was entrusted with drafting France's global influence strategy – a mission that cemented his reputation as an expert in public diplomacy and strategic communications.",
         "Building on these high-level government experiences, Frank Melloul transitioned to international media in 2007. He contributed to the launch of the France 24 news channel as its Director of Strategy and Development. He continued his work at Audiovisuel Extérieur de la France (now France Médias Monde), overseeing strategy and public affairs for France's global media outlets such as France 24 and RFI. In 2013, Frank Melloul undertook a new challenge by creating i24NEWS, the first 24/7 international news channel based in Israel. Under his leadership, i24NEWS expanded into a multilingual network with audiences across multiple continents, including the launch of Israel's first-ever 24/7 news channel in Hebrew.",
         "MELLOUL & Partners represents the natural culmination of Frank Melloul's unique career at the crossroads of government, global influence, and international media. He leverages the full scope of expertise gained at the highest levels of these three domains to advise his clients – from public institutions to private sector leaders – on their international influence, diplomacy, and strategic communications in an increasingly complex global arena.",
+        "In June 2026, against the backdrop of the deepening Abraham Accords and profound economic and geopolitical transformations underway in the region, the Haifa Bay Authorities announced the appointment of Mr. Frank Melloul as Ambassador of the Cluster, with a mandate to define and advance its international public diplomacy strategy.",
       ],
       stats: [
         { label: "Years of experience", value: "20+" },
@@ -133,6 +140,7 @@ export const translations = {
     // Footer
     footer: {
       copyright: "© 2025 MELLOUL & Partners. Global Advisory.",
+      privacy: "Privacy Policy",
     },
   },
   fr: {
@@ -148,7 +156,11 @@ export const translations = {
     hero: {
       founderName: "Frank Melloul",
       companyName: "MELLOUL & Partners",
-      globalAdvisory: "Conseil mondial",
+      globalAdvisory: "Global Advisory",
+      taglinePart1: "Stratégie pour l'",
+      taglineHighlight1: "Influence",
+      taglinePart2: " et la ",
+      taglineHighlight2: "Diplomatie",
       title: "Accompagne les leaders pour façonner les agendas, débloquer les opportunités et créer un impact durable.",
       discover: "Découvrir",
       // Words to highlight in gold
@@ -247,6 +259,7 @@ export const translations = {
         "Diplomate de formation, Frank Melloul a débuté sa carrière au service de l'État français. Dès 2001, il occupe des fonctions au ministère des Affaires étrangères, se spécialisant dans les questions stratégiques et la gestion de crises internationales. Il devient ensuite conseiller en communication au sein du gouvernement, notamment auprès du Premier ministre Dominique de Villepin de 2005 à 2007, contribuant à la stratégie internationale de la France. En 2010, il est chargé d'élaborer la stratégie d'influence de la France sur la scène mondiale – une mission qui consacre son expertise en diplomatie d'influence.",
         "Fort de ces expériences au cœur de l'appareil d'État, Frank Melloul se tourne vers les médias internationaux à partir de 2007. Il participe au lancement de la chaîne d'information France 24 en tant que directeur de la stratégie et du développement. Il poursuit sa mission au sein de l'Audiovisuel Extérieur de la France (aujourd'hui France Médias Monde), où il pilote la stratégie et les affaires publiques des médias français à vocation mondiale, de France 24 à RFI. En 2013, Frank Melloul relève un nouveau défi en créant i24NEWS, première chaîne d'information internationale en continu basée en Israël. Sous sa direction, i24NEWS déploie des rédactions en plusieurs langues et étend son audience sur plusieurs continents, notamment avec le lancement du premier canal d'information 24/7 en hébreu – une première historique en Israël.",
         "MELLOUL & Partners est ainsi l'aboutissement naturel du parcours unique de Frank Melloul, au carrefour de l'État, de l'influence et des médias internationaux. Il y mobilise l'ensemble de l'expertise acquise au plus haut niveau de ces trois sphères pour accompagner ses clients – qu'ils soient acteurs publics ou dirigeants du secteur privé – dans leurs stratégies de rayonnement, de diplomatie et de communication à l'échelle mondiale.",
+        "En juin 2026, dans le contexte du renforcement des Accords d'Abraham et des profondes transformations économiques et géopolitiques à l'œuvre dans la région, les Autorités de la Baie de Haïfa annoncent la nomination de M. Frank Melloul en qualité d'ambassadeur du Cluster, avec pour mission de définir et de porter sa stratégie de diplomatie publique à l'international.",
       ],
       stats: [
         { label: "Années d'expérience", value: "20+" },
@@ -267,6 +280,137 @@ export const translations = {
     // Footer
     footer: {
       copyright: "© 2025 MELLOUL & Partners. Global Advisory.",
+      privacy: "Politique de confidentialité",
+    },
+  },
+  ar: {
+    nav: {
+      services: "الخدمات",
+      about: "من نحن",
+      biography: "السيرة الذاتية",
+      communication: "التواصل",
+      contact: "اتصل بنا",
+    },
+    hero: {
+      founderName: "Frank Melloul",
+      companyName: "MELLOUL & Partners",
+      globalAdvisory: "Global Advisory",
+      taglinePart1: "استراتيجية ",
+      taglineHighlight1: "التأثير",
+      taglinePart2: " و",
+      taglineHighlight2: "الدبلوماسية",
+      title: "تمكّن القادة من تشكيل الأجندات، وفتح الفرص، وخلق أثرٍ مستدام.",
+      discover: "اكتشف",
+      highlightWords: ["القادة", "الأجندات،", "الفرص", "أثرٍ"],
+    },
+    services: {
+      title: "خدماتنا",
+      items: [
+        {
+          id: "strategy",
+          title: "الاستراتيجية العالمية والاستشارات التنفيذية",
+          subtitle: "الاستراتيجية العالمية والاستشارات التنفيذية",
+          description:
+            "بالاعتماد على رؤية عالمية وخبرة مثبتة، يقدّم Melloul & Partners استشارات للقادة في وضع وتنفيذ استراتيجيات عالمية طموحة. نساعد صناع القرار على استباق التحولات الجيوسياسية والاقتصادية، وتحديد الفرص الناشئة، والتنقل في بيئات معقّدة. يضمن نهجنا الحصري — المبني على خبرة على أعلى المستويات — اتخاذ قرارات مستنيرة وواثقة. وبدمج المنظور الاستراتيجي مع الواقعية التشغيلية، نعزّز تنافسية عملائنا وامتدادهم الدولي.",
+        },
+        {
+          id: "diplomacy",
+          title: "دبلوماسية التأثير والشؤون العامة الدولية",
+          subtitle: "دبلوماسية التأثير والشؤون العامة الدولية",
+          description:
+            "بفضل شبكة دبلوماسية دولية استثنائية، نرافق عملاءنا في بناء التحالفات الاستراتيجية والوصول إلى صناع القرار الرئيسيين على الساحة العالمية. يتفوّق Melloul & Partners في تمثيل مصالح عملائنا والدفاع عنها لدى الحكومات والمؤسسات والمنتديات الدولية. تمكّننا خبرتنا في الشؤون العامة ودبلوماسية التأثير من تشكيل بيئة مواتية لطموحات عملائنا. ومن خلال بناء علاقات ثقة على أعلى المستويات، نمنح عملاءنا صوتاً مؤثراً وموقعاً استراتيجياً على رقعة الشطرنج العالمية.",
+        },
+        {
+          id: "communications",
+          title: "الاتصالات الاستراتيجية رفيعة المستوى",
+          subtitle: "الاتصالات الاستراتيجية رفيعة المستوى",
+          description:
+            "في عالمٍ تكون فيه صورة القادة ورسائلهم محورية، يوجّه Melloul & Partners اتصالات استراتيجية عالية التأثير على أعلى المستويات. نطوّر سرديات تأثير مخصّصة ونرشد عملاءنا في خطاباتهم العامة والإعلامية والمؤسسية. وبفضل خبرتنا في إدارة قضايا الاتصال الحساسة والمعقّدة، نساعد القادة على بثّ الثقة وتعزيز مصداقيتهم لدى أصحاب المصلحة الرئيسيين. تضمن خبرتنا الحصرية إدارة دقيقة للحضور الإعلامي لعملائنا والاعتراف بريادتهم الفكرية على الساحة الدولية.",
+        },
+        {
+          id: "crisis",
+          title: "إدارة الأزمات الحساسة والمرونة الاستراتيجية",
+          subtitle: "إدارة الأزمات الحساسة والمرونة الاستراتيجية",
+          description:
+            "في مواجهة أكثر الأزمات حساسية، يتدخّل Melloul & Partners كشريك موثوق لحماية المصالح الحيوية وسمعة عملائنا. توفر وحدة الأزمات لدينا، المتاحة على مدار الساعة طوال أيام الأسبوع، قيادة استراتيجية واتصالات أزمات مضبوطة وتنسيقاً سرياً مع أصحاب المصلحة الحاسمين. مدعومين بخبرة في إدارة أزمات معقّدة على أعلى مستويات الحكومة والأعمال، نستبق المخاطر الناشئة ونحدّ من تأثيرها. يمكّن نهجنا الاستباقي والسري عملاءنا من تجاوز الشدائد والحفاظ على ثقة الجمهور وتعزيز مرونتهم على المدى الطويل.",
+        },
+      ],
+    },
+    about: {
+      title: "من نحن",
+      sections: [
+        {
+          title: "المهمة والغاية",
+          content:
+            "تتمثّل مهمة Melloul & Partners في مرافقة القادة والحكومات والمؤسسات في أعقد تحدياتهم الاستراتيجية والإعلامية والجيوسياسية. نساعد عملاءنا على استباق التحولات الجيوسياسية، وإتقان اتصالاتهم الدولية، والدفاع عن مصالحهم على الساحة العالمية. وتتمثّل غاية الشركة في تزويد صناع القرار بمنظور عالمي فريد والثقة اللازمة للتنقل في عالم يتغيّر باستمرار.",
+        },
+        {
+          title: "نهجنا المميّز",
+          content:
+            "تقوم نجاحات Melloul & Partners على نهج استشاري يتميّز بالسرّية والتخصيص والثقة، مع ضمان مرافقة مخصّصة لكل عميل في سرّية تامة. وبفهم دقيق للتحولات الدولية، نطوّر حلولاً استراتيجية ذات صلة وعملية وقابلة للتطبيق فوراً.",
+        },
+        {
+          title: "الانتشار العالمي والطموح",
+          content:
+            "يعمل Melloul & Partners على نطاق عالمي، مستفيداً من شبكة دولية من الشركاء والخبراء. يتيح هذا الانتشار العالمي مرافقة عملائنا في جميع القارات، مع فهم عميق للسياقات المحلية. وطموحنا أن نصبح الشريك الموثوق مرجعياً للقادة الساعين إلى مواجهة التحديات الاستراتيجية والإعلامية والجيوسياسية للقرن الحادي والعشرين.",
+        },
+      ],
+      valuesTitle: "قيمنا",
+      values: [
+        {
+          number: "01",
+          title: "التميّز",
+          description: "الالتزام بتحقيق أعلى مستويات الجودة في كل مهمة.",
+        },
+        {
+          number: "02",
+          title: "الانضباط",
+          description: "دقة مطلقة في التحليل والتنفيذ، مع الاهتمام بأدق التفاصيل.",
+        },
+        {
+          number: "03",
+          title: "الولاء",
+          description: "ولاء لا يتزعزع لمصالح عملائنا.",
+        },
+        {
+          number: "04",
+          title: "البصيرة",
+          description: "استباق التطورات العالمية للبقاء في الطليعة.",
+        },
+        {
+          number: "05",
+          title: "الثقة",
+          description: "علاقة متبادلة قائمة على النزاهة والسرّية.",
+        },
+      ],
+    },
+    biography: {
+      title: "السيرة الذاتية",
+      paragraphs: [
+        "في عام 2025، أسّس Frank Melloul شركة MELLOUL & Partners، وهي شركة استشارات دولية متخصّصة في الدبلوماسية والتأثير والإعلام والاستراتيجية. تجسّد هذه الشركة طموحه الاستراتيجي: تقديم استشارات رفيعة المستوى لصناع القرار في القطاعين العام والخاص، عند تقاطع الدبلوماسية والتأثير العالمي والإعلام الدولي.",
+        "دبلوماسي بالتكوين، بدأ Frank Melloul مسيرته في خدمة الدولة الفرنسية. منذ 2001، شغل مناصب في وزارة الخارجية، متخصّصاً في الشؤون الاستراتيجية وإدارة الأزمات الدولية. ثم أصبح مستشاراً في الاتصال ضمن الحكومة، ولا سيّما لدى رئيس الوزراء Dominique de Villepin بين 2005 و2007، مساهماً في الاستراتيجية الدولية لفرنسا. في 2010، تولّى إعداد استراتيجية التأثير الفرنسية على الساحة العالمية — مهمة رسّخت سمعته كخبير في الدبلوماسية العامة والاتصالات الاستراتيجية.",
+        "انطلاقاً من هذه الخبرات على أعلى مستويات الدولة، توجّه Frank Melloul نحو الإعلام الدولي ابتداءً من 2007. شارك في إطلاق قناة France 24 بصفته مدير الاستراتيجية والتطوير. وواصل مسيرته في Audiovisuel Extérieur de la France (France Médias Monde اليوم)، حيث أشرف على الاستراتيجية والشؤون العامة للوسائط الفرنسية ذات البعد العالمي، من France 24 إلى RFI. في 2013، خوض Frank Melloul تحدياً جديداً بإنشاء i24NEWS، أول قناة إخبارية دولية على مدار الساعة مقرّها في إسرائيل. تحت قيادته، توسّعت i24NEWS لتصبح شبكة متعددة اللغات بجمهور في عدة قارات، بما في ذلك إطلاق أول قناة إخبارية على مدار الساعة باللغة العبرية في إسرائيل.",
+        "يمثّل MELLOUL & Partners التتويج الطبيعي للمسار الفريد لـ Frank Melloul عند تقاطع الدولة والتأثير والإعلام الدولي. يُ movilise مجموعة خبراته المكتسبة على أعلى المستويات في هذه المجالات الثلاثة لمرافقة عملائه — سواء من المؤسسات العامة أو قادة القطاع الخاص — في استراتيجياتهم للتأثير والدبلوماسية والاتصال على الساحة العالمية المتزايدة التعقيد.",
+        "في يونيو 2026، في سياق تعزيز اتفاقيات إبراهيم والتحولات الاقتصادية والجيوسياسية العميقة الجارية في المنطقة، أعلنت سلطات خليج حيفا عن تعيين السيد Frank Melloul سفيراً للمجمع، مكلفاً بتحديد استراتيجية الدبلوماسية العامة الدولية للمجمع والدفاع عنها.",
+      ],
+      stats: [
+        { label: "سنوات الخبرة", value: "20+" },
+        { label: "عملاء تمت استشارتهم", value: "150+" },
+        { label: "دول التدخّل", value: "40+" },
+      ],
+    },
+    contact: {
+      title: "لنبني نجاحكم معاً",
+      subtitle:
+        "لنناقش أهدافكم ونكتشف كيف يمكن لخبرتنا أن ترافقكم نحو آفاق جديدة.",
+      button: "اتصل بنا",
+      email: "البريد الإلكتروني",
+      location: "الموقع",
+      locationValue: "Paris • Dubai",
+    },
+    footer: {
+      copyright: "© 2025 MELLOUL & Partners. Global Advisory.",
+      privacy: "سياسة الخصوصية",
     },
   },
 } as const;

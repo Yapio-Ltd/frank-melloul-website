@@ -74,9 +74,6 @@ function HeroSection() {
             transition={{ duration: 0.6, delay: 1.1 }}
           >
             <h1 className="flex flex-col items-center gap-2 text-center font-sans font-medium">
-              <span className="text-primary-200 text-lg md:text-xl lg:text-2xl tracking-[0.2em] uppercase">
-                {t.hero.founderName}
-              </span>
               <span className="text-gold-400 text-2xl md:text-3xl lg:text-4xl tracking-[0.15em]">
                 {t.hero.companyName}
               </span>
@@ -93,10 +90,10 @@ function HeroSection() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 1.3 }}
           >
-            <span className="text-primary-100">Strategy for </span>
-            <span className="text-gold-400">Influence</span>
-            <span className="text-primary-100"> and </span>
-            <span className="text-gold-400">Diplomacy</span>
+            <span className="text-primary-100">{t.hero.taglinePart1}</span>
+            <span className="text-gold-400">{t.hero.taglineHighlight1}</span>
+            <span className="text-primary-100">{t.hero.taglinePart2}</span>
+            <span className="text-gold-400">{t.hero.taglineHighlight2}</span>
           </motion.p>
         </div>
       </motion.div>

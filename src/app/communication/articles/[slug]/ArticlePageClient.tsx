@@ -8,6 +8,55 @@ import Footer from "@/components/Footer";
 import { supabase, SUPABASE_MEDIA_BUCKET } from "@/lib/supabaseClient";
 import { createPortal } from "react-dom";
 import { toast } from "sonner";
+import {
+  Locale,
+  LOCALE_PREFIX,
+  buildLocalizedPath,
+  getIntlLocale,
+  pickLocalizedText,
+} from "@/lib/locale";
+
+const articleLabels = {
+  en: {
+    back: "← Back to Communication",
+    loading: "Loading…",
+    notFound: "Article not found.",
+    by: "By",
+    role: "Founder & Partner, Melloul & Partners",
+    share: "Share",
+    copyLink: "Copy link",
+    linkCopied: "Link copied to clipboard!",
+    mayInterest: "May Interest You",
+    home: "Home",
+    viewAll: "View all articles",
+  },
+  fr: {
+    back: "← Retour à Communication",
+    loading: "Chargement…",
+    notFound: "Article introuvable.",
+    by: "Par",
+    role: "Fondateur & Associé, Melloul & Partners",
+    share: "Partager",
+    copyLink: "Copier le lien",
+    linkCopied: "Lien copié !",
+    mayInterest: "Peut vous intéresser",
+    home: "Accueil",
+    viewAll: "Voir tous les articles",
+  },
+  ar: {
+    back: "← العودة إلى التواصل",
+    loading: "جارٍ التحميل…",
+    notFound: "المقال غير موجود.",
+    by: "بقلم",
+    role: "المؤسس والشريك، Melloul & Partners",
+    share: "مشاركة",
+    copyLink: "نسخ الرابط",
+    linkCopied: "تم نسخ الرابط!",
+    mayInterest: "قد يهمّك أيضاً",
+    home: "الرئيسية",
+    viewAll: "عرض جميع المقالات",
+  },
+} as const;
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -43,16 +92,16 @@ function getPublicUrl(path: string) {
   );
 }
 
-function formatDate(iso: string, locale: "fr" | "en") {
-  return new Intl.DateTimeFormat(locale === "fr" ? "fr-FR" : "en-US", {
+function formatDate(iso: string, locale: Locale) {
+  return new Intl.DateTimeFormat(getIntlLocale(locale), {
     year: "numeric",
     month: "long",
     day: "numeric",
   }).format(new Date(iso));
 }
 
-function formatDateShort(iso: string, locale: "fr" | "en") {
-  return new Intl.DateTimeFormat(locale === "fr" ? "fr-FR" : "en-US", {
+function formatDateShort(iso: string, locale: Locale) {
+  return new Intl.DateTimeFormat(getIntlLocale(locale), {
     year: "numeric",
     month: "short",
     day: "numeric",
@@ -64,7 +113,7 @@ export default function ArticlePageClient({
   locale,
 }: {
   identifier: string;
-  locale: "fr" | "en";
+  locale: Locale;
 }) {
   const isId = UUID_RE.test(identifier);
   const [article, setArticle] = useState<ArticleData | null>(null);
@@ -75,21 +124,9 @@ export default function ArticlePageClient({
   const [shareAnchor, setShareAnchor] = useState<DOMRect | null>(null);
   const shareButtonRef = useRef<HTMLButtonElement>(null);
 
-  const backHref = locale === "fr" ? "/fr/communication" : "/communication";
-  const backLabel = locale === "fr" ? "← Retour à Communication" : "← Back to Communication";
-  const loadingLabel = locale === "fr" ? "Chargement…" : "Loading…";
-  const notFoundLabel = locale === "fr" ? "Article introuvable." : "Article not found.";
-  const byLabel = locale === "fr" ? "Par" : "By";
-  const roleLabel =
-    locale === "fr"
-      ? "Fondateur & Associé, Melloul & Partners"
-      : "Founder & Partner, Melloul & Partners";
-  const shareLabel = locale === "fr" ? "Partager" : "Share";
-  const copyLinkLabel = locale === "fr" ? "Copier le lien" : "Copy link";
-  const linkCopiedLabel = locale === "fr" ? "Lien copié !" : "Link copied to clipboard!";
-  const mayInterestLabel = locale === "fr" ? "Peut vous intéresser" : "May Interest You";
-  const homeLabel = locale === "fr" ? "Accueil" : "Home";
-  const homeHref = locale === "fr" ? "/fr" : "/";
+  const labels = articleLabels[locale];
+  const backHref = buildLocalizedPath("/communication", locale);
+  const homeHref = buildLocalizedPath("/", locale);
 
   useEffect(() => {
     if (!supabase) {
@@ -115,8 +152,8 @@ export default function ArticlePageClient({
         setArticle({
           id: data.id,
           slug: data.slug ?? null,
-          title: locale === "en" ? (data.title_en ?? data.title) : data.title,
-          content: locale === "en" ? (data.content_en ?? data.content) : data.content,
+          title: pickLocalizedText(data, "title", locale),
+          content: pickLocalizedText(data, "content", locale),
           image_path: data.image_path,
           created_at: data.created_at,
         });
@@ -135,7 +172,7 @@ export default function ArticlePageClient({
           (data as RelatedArticleQueryRow[]).map((a) => ({
             id: a.id,
             slug: a.slug ?? null,
-            title: locale === "en" ? (a.title_en ?? a.title) : a.title,
+            title: pickLocalizedText(a, "title", locale),
             image_path: a.image_path,
             created_at: a.created_at,
           }))
@@ -150,16 +187,16 @@ export default function ArticlePageClient({
 
         {loading ? (
           <div className="relative z-10 pt-40 container mx-auto px-6 md:px-12 lg:px-20">
-            <p className="text-primary-400 text-sm">{loadingLabel}</p>
+            <p className="text-primary-400 text-sm">{labels.loading}</p>
           </div>
         ) : notFound ? (
           <div className="relative z-10 pt-40 container mx-auto px-6 md:px-12 lg:px-20">
-            <p className="text-primary-400 text-sm">{notFoundLabel}</p>
+            <p className="text-primary-400 text-sm">{labels.notFound}</p>
             <Link
               href={backHref}
               className="mt-4 inline-block text-gold-500 hover:text-gold-400 text-sm transition-colors"
             >
-              {backLabel}
+              {labels.back}
             </Link>
           </div>
         ) : article ? (
@@ -187,7 +224,7 @@ export default function ArticlePageClient({
                 <ol className="flex items-center gap-2 text-xs text-primary-500 flex-wrap">
                   <li>
                     <Link href={homeHref} className="hover:text-gold-400 transition-colors">
-                      {homeLabel}
+                      {labels.home}
                     </Link>
                   </li>
                   <li className="text-primary-700">/</li>
@@ -219,7 +256,7 @@ export default function ArticlePageClient({
                       className="inline-flex items-center gap-2 text-primary-400 hover:text-gold-500 text-sm transition-colors"
                     >
                       <span>←</span>
-                      <span>{backLabel.replace("← ", "")}</span>
+                      <span>{labels.back.replace("← ", "")}</span>
                     </Link>
                   </motion.div>
 
@@ -253,15 +290,15 @@ export default function ArticlePageClient({
                         className="group inline-flex items-center gap-2 px-4 py-2 rounded-full border border-gold-500/20 bg-navy-900/60 hover:border-gold-500/40 hover:bg-navy-800/80 text-primary-300 hover:text-gold-400 text-sm transition-all duration-200"
                       >
                         <ShareIcon className="w-4 h-4" />
-                        {shareLabel}
+                        {labels.share}
                       </button>
                       <AnimatePresence>
                         {shareAnchor && (
                           <ArticleSharePopover
                             url={getArticleUrl(article.slug ?? article.id, locale)}
                             title={article.title}
-                            copyLinkLabel={copyLinkLabel}
-                            linkCopiedLabel={linkCopiedLabel}
+                            copyLinkLabel={labels.copyLink}
+                            linkCopiedLabel={labels.linkCopied}
                             anchorRect={shareAnchor}
                             onClose={() => setShareAnchor(null)}
                           />
@@ -298,13 +335,13 @@ export default function ArticlePageClient({
                         />
                         <div>
                           <p className="text-xs text-primary-500 uppercase tracking-widest mb-0.5">
-                            {byLabel}
+                            {labels.by}
                           </p>
                           <p className="text-primary-100 font-serif text-lg leading-tight">
                             Frank Melloul
                           </p>
                           <p className="text-primary-500 text-sm mt-0.5">
-                            {roleLabel}
+                            {labels.role}
                           </p>
                         </div>
                       </div>
@@ -323,16 +360,17 @@ export default function ArticlePageClient({
                     <div className="flex items-center gap-3 mb-6">
                       <span className="w-5 h-[1px] bg-gold-400 shrink-0" />
                       <h2 className="text-gold-400 text-xs font-semibold tracking-[0.18em] uppercase">
-                        {mayInterestLabel}
+                        {labels.mayInterest}
                       </h2>
                     </div>
 
                     <div className="space-y-5">
                       {relatedArticles.map((rel) => {
                         const relIdentifier = rel.slug ?? rel.id;
-                        const articleHref = locale === "fr"
-                          ? `/fr/communication/articles/${relIdentifier}`
-                          : `/communication/articles/${relIdentifier}`;
+                        const articleHref = buildLocalizedPath(
+                          `/communication/articles/${relIdentifier}`,
+                          locale
+                        );
                         return (
                           <Link
                             key={rel.id}
@@ -366,7 +404,7 @@ export default function ArticlePageClient({
                         href={backHref}
                         className="inline-flex items-center gap-1.5 text-gold-500 hover:text-gold-300 text-xs tracking-wider uppercase font-medium transition-colors"
                       >
-                        <span>{locale === "fr" ? "Voir tous les articles" : "View all articles"}</span>
+                        <span>{labels.viewAll}</span>
                         <span>→</span>
                       </Link>
                     </div>
@@ -384,9 +422,9 @@ export default function ArticlePageClient({
 
 /* ------------------------------------------------------------------ */
 
-function getArticleUrl(slug: string, locale: "fr" | "en") {
+function getArticleUrl(slug: string, locale: Locale) {
   const origin = typeof window !== "undefined" ? window.location.origin : "";
-  const prefix = locale === "fr" ? "/fr" : "";
+  const prefix = LOCALE_PREFIX[locale];
   return `${origin}${prefix}/communication/articles/${slug}`;
 }
 

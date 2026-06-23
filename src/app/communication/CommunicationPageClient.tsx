@@ -11,6 +11,7 @@ import { useSearchParams } from "next/navigation";
 import { supabase, SUPABASE_MEDIA_BUCKET } from "@/lib/supabaseClient";
 import { htmlToPlainText } from "@/lib/utils";
 import { toast } from "sonner";
+import { pickLocalizedText, Locale, buildLocalizedPath, LOCALE_PREFIX } from "@/lib/locale";
 
 const pageTranslations = {
   en: {
@@ -49,14 +50,31 @@ const pageTranslations = {
     readArticle: "Lire l'article",
     externalLink: "Lien",
   },
+  ar: {
+    title: "التواصل",
+    subtitle:
+      "الظهور الإعلامي والمقابلات وآراء Melloul & Partners",
+    backToHome: "العودة إلى الصفحة الرئيسية",
+    watchVideo: "مشاهدة الفيديو",
+    articlesTitle: "المقالات",
+    videosTitle: "الفيديوهات",
+    loading: "جارٍ التحميل…",
+    empty: "لا توجد فيديوهات متاحة حالياً.",
+    emptyArticles: "لا توجد مقالات متاحة حالياً.",
+    share: "مشاركة",
+    linkCopied: "تم نسخ الرابط!",
+    copyLink: "نسخ الرابط",
+    tapToUnmute: "اضغط لتشغيل الصوت",
+    readArticle: "قراءة المقال",
+    externalLink: "رابط",
+  },
 } as const;
 
 type Translations = (typeof pageTranslations)[keyof typeof pageTranslations];
 
-function getShareUrl(type: "video" | "article", id: string) {
+function getShareUrl(type: "video" | "article", id: string, locale: Locale) {
   const origin = typeof window !== "undefined" ? window.location.origin : "";
-  const path = typeof window !== "undefined" ? window.location.pathname : "";
-  const prefix = path.startsWith("/fr") ? "/fr" : "";
+  const prefix = LOCALE_PREFIX[locale];
   return `${origin}${prefix}/communication?${type}=${id}`;
 }
 
@@ -168,29 +186,22 @@ export default function CommunicationPageClient() {
         setArticles([]);
       }
 
-      const isEn = locale === "en";
       const videoRows = (videosRes.data ?? []) as VideoDbRow[];
       const articleRows = (articlesRes.data ?? []) as ArticleDbRow[];
 
       const mapped = videoRows.map((row) => ({
         id: row.id,
         thumbnail: getPublicUrl(row.thumbnail_path),
-        title:
-          (isEn ? (row.title_en ?? row.title) : row.title) ?? "",
-        description:
-          (isEn
-            ? (row.description_en ?? row.description)
-            : row.description) ?? "",
+        title: pickLocalizedText(row as unknown as Record<string, unknown>, "title", locale),
+        description: pickLocalizedText(row as unknown as Record<string, unknown>, "description", locale),
         videoUrl: getPublicUrl(row.video_path),
         externalUrl: row.external_url ?? null,
       }));
       const mappedArticles = articleRows.map((row) => ({
         id: row.id,
         slug: row.slug ?? null,
-        title:
-          (isEn ? (row.title_en ?? row.title) : row.title) ?? "",
-        content:
-          (isEn ? (row.content_en ?? row.content) : row.content) ?? "",
+        title: pickLocalizedText(row as unknown as Record<string, unknown>, "title", locale),
+        content: pickLocalizedText(row as unknown as Record<string, unknown>, "content", locale),
         image: getPublicUrl(row.image_path),
         externalUrl: row.external_url ?? null,
       }));
@@ -230,7 +241,7 @@ export default function CommunicationPageClient() {
             className="mb-8"
           >
             <Link
-              href="/"
+              href={buildLocalizedPath("/", locale)}
               className="inline-flex items-center gap-2 text-primary-400 hover:text-gold-500 transition-colors"
             >
               <span>←</span>
@@ -294,6 +305,7 @@ export default function CommunicationPageClient() {
                     video={video}
                     index={index}
                     t={t}
+                    locale={locale}
                     onOpen={() => setActive(video)}
                   />
                 ))}
@@ -304,7 +316,7 @@ export default function CommunicationPageClient() {
       </main>
 
       {active && (
-        <VideoModal video={active} t={t} onClose={() => setActive(null)} />
+        <VideoModal video={active} t={t} locale={locale} onClose={() => setActive(null)} />
       )}
       <Footer />
     </>
@@ -491,11 +503,13 @@ function VideoCard({
   video,
   index,
   t,
+  locale,
   onOpen,
 }: {
   video: Video;
   index: number;
   t: Translations;
+  locale: Locale;
   onOpen: () => void;
 }) {
   const [shareAnchor, setShareAnchor] = useState<DOMRect | null>(null);
@@ -615,7 +629,7 @@ function VideoCard({
         <AnimatePresence>
           {shareAnchor && (
             <SharePopover
-              url={isExternal ? video.externalUrl! : getShareUrl("video", video.id)}
+              url={isExternal ? video.externalUrl! : getShareUrl("video", video.id, locale)}
               title={video.title}
               t={t}
               anchorRect={shareAnchor}
@@ -633,10 +647,12 @@ function VideoCard({
 function VideoModal({
   video,
   t,
+  locale,
   onClose,
 }: {
   video: Video;
   t: Translations;
+  locale: Locale;
   onClose: () => void;
 }) {
   const [isLoading, setIsLoading] = useState(true);
@@ -736,7 +752,7 @@ function VideoModal({
               <AnimatePresence>
                 {shareAnchor && (
                   <SharePopover
-                    url={getShareUrl("video", video.id)}
+                    url={getShareUrl("video", video.id, locale)}
                     title={video.title}
                     t={t}
                     anchorRect={shareAnchor}
@@ -842,21 +858,16 @@ function ArticleCard({
   article: Article;
   index: number;
   t: Translations;
-  locale: "fr" | "en";
+  locale: Locale;
 }) {
   const [shareAnchor, setShareAnchor] = useState<DOMRect | null>(null);
   const shareButtonRef = useRef<HTMLButtonElement>(null);
   const isExternal = Boolean(article.externalUrl);
 
-  const internalHref =
-    article.slug
-      ? locale === "fr"
-        ? `/fr/communication/articles/${article.slug}`
-        : `/communication/articles/${article.slug}`
-      :
-    locale === "fr"
-      ? `/fr/communication/articles/${article.id}`
-      : `/communication/articles/${article.id}`;
+  const articlePath = article.slug
+    ? `/communication/articles/${article.slug}`
+    : `/communication/articles/${article.id}`;
+  const internalHref = buildLocalizedPath(articlePath, locale);
 
   const thumbnail = (
     <div className="relative aspect-video mb-3 overflow-hidden rounded-xl bg-navy-800 w-full">

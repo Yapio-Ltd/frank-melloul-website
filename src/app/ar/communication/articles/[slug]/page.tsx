@@ -4,6 +4,7 @@ import { isUUID } from "@/lib/articleQuery";
 import { permanentRedirect } from "next/navigation";
 import ArticlePageClient from "@/app/communication/articles/[slug]/ArticlePageClient";
 import { excerptFromHtml } from "@/lib/utils";
+import { LANGUAGE_ALTERNATES } from "@/lib/locale";
 
 const SITE_URL = "https://melloulandpartners.com";
 const FALLBACK_IMAGE = `${SITE_URL}/logo-gold.png`;
@@ -54,16 +55,16 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   if (!data) return { title: "Article | Melloul & Partners" };
 
   const articleSlug = data.slug ?? data.id ?? params.slug;
-  const title = data.title + " | Melloul & Partners";
-  const description = cutText(data.content ?? "", META_DESC_MAX);
+  const title = (data.title_en ?? data.title) + " | Melloul & Partners";
+  const description = cutText(data.content_en ?? data.content ?? "", META_DESC_MAX);
   const ogImage = data.image_path ? imageUrl(data.image_path) : FALLBACK_IMAGE;
-  const url = `${SITE_URL}/fr/communication/articles/${articleSlug}`;
+  const url = `${SITE_URL}/ar/communication/articles/${articleSlug}`;
 
   return {
     title,
     description,
     alternates: {
-      canonical: `/fr/communication/articles/${articleSlug}`,
+      canonical: `/ar/communication/articles/${articleSlug}`,
       languages: {
         en: `/communication/articles/${articleSlug}`,
         fr: `/fr/communication/articles/${articleSlug}`,
@@ -75,7 +76,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
       title,
       description,
       url,
-      locale: "fr_FR",
+      locale: "ar_AE",
       type: "article",
       publishedTime: data.created_at,
       modifiedTime: data.updated_at,
@@ -87,16 +88,16 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   };
 }
 
-export default async function ArticleFrPage({ params }: Props) {
+export default async function ArticleArPage({ params }: Props) {
   const data = await getArticle(params.slug);
   if (data?.slug && isUUID(params.slug)) {
-    permanentRedirect(`/fr/communication/articles/${data.slug}`);
+    permanentRedirect(`/ar/communication/articles/${data.slug}`);
   }
 
   const articleSlug = data?.slug ?? data?.id ?? params.slug;
   const ogImage = data?.image_path ? imageUrl(data.image_path) : FALLBACK_IMAGE;
-  const articleTitle = data?.title ?? "";
-  const articleDesc = data ? cutText(data.content ?? "", ARTICLE_DESC_MAX) : "";
+  const articleTitle = data ? (data.title_en ?? data.title) : "";
+  const articleDesc = data ? cutText(data.content_en ?? data.content ?? "", ARTICLE_DESC_MAX) : "";
 
   const jsonLd = data
     ? {
@@ -107,17 +108,17 @@ export default async function ArticleFrPage({ params }: Props) {
         image: ogImage,
         datePublished: data.created_at,
         dateModified: data.updated_at,
-        inLanguage: "fr",
-        url: `${SITE_URL}/fr/communication/articles/${articleSlug}`,
+        inLanguage: "ar",
+        url: `${SITE_URL}/ar/communication/articles/${articleSlug}`,
         mainEntityOfPage: {
           "@type": "WebPage",
-          "@id": `${SITE_URL}/fr/communication/articles/${articleSlug}`,
+          "@id": `${SITE_URL}/ar/communication/articles/${articleSlug}`,
         },
         author: {
           "@type": "Person",
           name: "Frank Melloul",
           url: `${SITE_URL}/`,
-          jobTitle: "Fondateur",
+          jobTitle: "المؤسس",
           worksFor: {
             "@type": "Organization",
             name: "Melloul & Partners",
@@ -144,7 +145,7 @@ export default async function ArticleFrPage({ params }: Props) {
           dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
         />
       )}
-      <ArticlePageClient identifier={params.slug} locale="fr" />
+      <ArticlePageClient identifier={params.slug} locale="ar" />
     </>
   );
 }

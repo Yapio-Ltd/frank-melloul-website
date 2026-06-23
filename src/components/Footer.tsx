@@ -5,9 +5,10 @@ import Link from "next/link";
 import { useLanguage } from "@/context/LanguageContext";
 import { useRouter } from "next/navigation";
 import { useRef } from "react";
+import { buildLocalizedPath } from "@/lib/locale";
 
 export default function Footer() {
-  const { t } = useLanguage();
+  const { t, locale } = useLanguage();
   const router = useRouter();
   const clickCountRef = useRef(0);
   const clickTimerRef = useRef<number | null>(null);
@@ -178,10 +179,10 @@ export default function Footer() {
             viewport={{ once: true }}
           >
             <Link
-              href="/privacy"
+              href={buildLocalizedPath("/privacy", locale)}
               className="text-primary-500 text-xs tracking-wide hover:text-primary-300 transition-colors duration-300"
             >
-              Privacy Policy
+              {t.footer.privacy}
             </Link>
           </motion.div>
 

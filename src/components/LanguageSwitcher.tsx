@@ -3,7 +3,11 @@
 import { motion } from "framer-motion";
 import { usePathname, useRouter } from "next/navigation";
 import { useLanguage } from "@/context/LanguageContext";
-import { Locale } from "@/lib/translations";
+import {
+  Locale,
+  buildLocalizedPath,
+  stripLocalePrefix,
+} from "@/lib/locale";
 
 export default function LanguageSwitcher() {
   const { locale, setLocale } = useLanguage();
@@ -13,17 +17,12 @@ export default function LanguageSwitcher() {
   const languages: { code: Locale; label: string }[] = [
     { code: "en", label: "EN" },
     { code: "fr", label: "FR" },
+    { code: "ar", label: "AR" },
   ];
 
   const navigateToLocale = (targetLocale: Locale) => {
-    const isFrenchPath = pathname === "/fr" || pathname.startsWith("/fr/");
-    const currentPathWithoutFr = isFrenchPath ? pathname.replace(/^\/fr/, "") || "/" : pathname;
-
-    const nextPath =
-      targetLocale === "fr"
-        ? currentPathWithoutFr === "/" ? "/fr" : `/fr${currentPathWithoutFr}`
-        : currentPathWithoutFr;
-
+    const pathWithoutLocale = stripLocalePrefix(pathname);
+    const nextPath = buildLocalizedPath(pathWithoutLocale, targetLocale);
     const hash = typeof window !== "undefined" ? window.location.hash : "";
     router.push(`${nextPath}${hash}`);
   };
@@ -52,4 +51,3 @@ export default function LanguageSwitcher() {
     </div>
   );
 }
-

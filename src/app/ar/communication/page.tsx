@@ -1,11 +1,12 @@
 import type { Metadata } from "next";
 import { supabase, SUPABASE_MEDIA_BUCKET } from "@/lib/supabaseClient";
-import CommunicationPageClient from "./CommunicationPageClient";
+import CommunicationPageClient from "@/app/communication/CommunicationPageClient";
+import { LANGUAGE_ALTERNATES } from "@/lib/locale";
 
 const SITE_URL = "https://melloulandpartners.com";
-const DEFAULT_TITLE = "Communication | Melloul & Partners";
+const DEFAULT_TITLE = "التواصل | Melloul & Partners";
 const DEFAULT_DESC =
-  "Media appearances, interviews, and insights from Melloul & Partners.";
+  "الظهور الإعلامي والمقابلات وآراء Melloul & Partners.";
 const FALLBACK_IMAGE = `${SITE_URL}/logo-gold.png`;
 
 function thumbnailUrl(path: string): string {
@@ -35,7 +36,7 @@ export async function generateMetadata({
   let ogTitle = DEFAULT_TITLE;
   let ogDesc = DEFAULT_DESC;
   let ogImage = FALLBACK_IMAGE;
-  let ogUrl = `${SITE_URL}/communication`;
+  let ogUrl = `${SITE_URL}/ar/communication`;
 
   if (videoId && supabase) {
     const { data } = await supabase
@@ -51,7 +52,7 @@ export async function generateMetadata({
       ogImage = data.thumbnail_path
         ? thumbnailUrl(data.thumbnail_path)
         : FALLBACK_IMAGE;
-      ogUrl = `${SITE_URL}/communication?video=${videoId}`;
+      ogUrl = `${SITE_URL}/ar/communication?video=${videoId}`;
     }
   } else if (articleId && supabase) {
     const { data } = await supabase
@@ -67,7 +68,7 @@ export async function generateMetadata({
       ogImage = data.image_path
         ? thumbnailUrl(data.image_path)
         : FALLBACK_IMAGE;
-      ogUrl = `${SITE_URL}/communication?article=${articleId}`;
+      ogUrl = `${SITE_URL}/ar/communication?article=${articleId}`;
     }
   }
 
@@ -75,13 +76,19 @@ export async function generateMetadata({
     title: ogTitle,
     description: ogDesc,
     alternates: {
-      canonical: "/communication",
-      languages: { en: "/communication", fr: "/fr/communication", ar: "/ar/communication" },
+      canonical: "/ar/communication",
+      languages: {
+        ...LANGUAGE_ALTERNATES,
+        en: "/communication",
+        fr: "/fr/communication",
+        ar: "/ar/communication",
+      },
     },
     openGraph: {
       title: ogTitle,
       description: ogDesc,
       url: ogUrl,
+      locale: "ar_AE",
       type: "website",
       images: [
         {
@@ -102,22 +109,22 @@ export async function generateMetadata({
   };
 }
 
-async function buildSchema() {
+async function buildSchemaAr() {
   const graph: Record<string, unknown>[] = [
     {
       "@type": "WebPage",
-      "@id": `${SITE_URL}/communication#webpage`,
-      url: `${SITE_URL}/communication`,
+      "@id": `${SITE_URL}/ar/communication#webpage`,
+      url: `${SITE_URL}/ar/communication`,
       name: DEFAULT_TITLE,
       description: DEFAULT_DESC,
-      inLanguage: "en",
+      inLanguage: "ar",
       isPartOf: { "@id": `${SITE_URL}/#website` },
     },
     {
       "@type": "BreadcrumbList",
       itemListElement: [
-        { "@type": "ListItem", position: 1, name: "Home", item: `${SITE_URL}/` },
-        { "@type": "ListItem", position: 2, name: "Communication", item: `${SITE_URL}/communication` },
+        { "@type": "ListItem", position: 1, name: "الرئيسية", item: `${SITE_URL}/ar` },
+        { "@type": "ListItem", position: 2, name: "التواصل", item: `${SITE_URL}/ar/communication` },
       ],
     },
   ];
@@ -143,19 +150,18 @@ async function buildSchema() {
   const articles = articlesRes.data ?? [];
 
   videos.forEach((v) => {
-    const title = v.title_en ?? v.title;
-    const desc = v.description_en ?? v.description ?? "";
     const thumb = v.thumbnail_path ? thumbnailUrl(v.thumbnail_path) : FALLBACK_IMAGE;
     const contentUrl = v.external_url || (v.video_path ? videoFileUrl(v.video_path) : "");
 
     graph.push({
       "@type": "VideoObject",
-      name: title,
-      description: desc || title,
+      name: v.title_en ?? v.title,
+      description: (v.description_en ?? v.description) || (v.title_en ?? v.title),
       thumbnailUrl: thumb,
       uploadDate: v.created_at,
+      inLanguage: "ar",
       ...(contentUrl && { contentUrl }),
-      url: `${SITE_URL}/communication?video=${v.id}`,
+      url: `${SITE_URL}/ar/communication?video=${v.id}`,
       publisher: {
         "@type": "Organization",
         name: "Melloul & Partners",
@@ -172,7 +178,7 @@ async function buildSchema() {
       itemListElement: articles.map((a, i) => ({
         "@type": "ListItem",
         position: i + 1,
-        url: `${SITE_URL}/communication/articles/${a.slug ?? a.id}`,
+        url: `${SITE_URL}/ar/communication/articles/${a.slug ?? a.id}`,
         name: a.title_en ?? a.title,
       })),
     });
@@ -181,8 +187,8 @@ async function buildSchema() {
   return { "@context": "https://schema.org", "@graph": graph };
 }
 
-export default async function CommunicationPage() {
-  const schema = await buildSchema();
+export default async function CommunicationArPage() {
+  const schema = await buildSchemaAr();
 
   return (
     <>

@@ -7,7 +7,8 @@ import {
   useEffect,
   ReactNode,
 } from "react";
-import { translations, Locale, Translations } from "@/lib/translations";
+import { translations } from "@/lib/translations";
+import { Locale, isValidLocale, isRtl } from "@/lib/locale";
 
 interface LanguageContextType {
   locale: Locale;
@@ -27,12 +28,16 @@ export function LanguageProvider({
   const [locale, setLocaleState] = useState<Locale>(initialLocale ?? "en");
 
   useEffect(() => {
-    // Check localStorage for saved preference
-    const saved = localStorage.getItem("locale") as Locale | null;
-    if (saved && (saved === "en" || saved === "fr")) {
+    const saved = localStorage.getItem("locale");
+    if (saved && isValidLocale(saved)) {
       setLocaleState(saved);
     }
   }, []);
+
+  useEffect(() => {
+    document.documentElement.lang = locale;
+    document.documentElement.dir = isRtl(locale) ? "rtl" : "ltr";
+  }, [locale]);
 
   const setLocale = (newLocale: Locale) => {
     setLocaleState(newLocale);

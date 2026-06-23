@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;0,700;1,300;1,400;1,500&family=Instrument+Sans:wght@400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;0,700;1,300;1,400;1,500&family=Instrument+Sans:wght@400;500;600;700&family=Noto+Sans+Arabic:wght@400;500;600;700&display=swap');
 
 @tailwind base;
 @tailwind components;
@@ -47,6 +47,14 @@ body {
   background-color: var(--color-navy);
   color: var(--color-cream);
   overflow-x: hidden;
+}
+
+html[dir="rtl"] body {
+  font-family: 'Noto Sans Arabic', 'Instrument Sans', system-ui, sans-serif;
+}
+
+html[dir="rtl"] .font-serif {
+  font-family: 'Noto Sans Arabic', 'Cormorant Garamond', Georgia, serif;
 }
 
 /* Custom Scrollbar */
