@@ -29,6 +29,7 @@ export default function Header() {
       setIsScrolled(window.scrollY > 50);
     };
 
+    handleScroll();
     window.addEventListener("scroll", handleScroll);
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
@@ -65,9 +66,9 @@ export default function Header() {
     <>
       <motion.header
         className={`fixed top-0 left-0 right-0 z-50 transition-all duration-500 ${
-          isScrolled 
-            ? "py-4 bg-navy-950/80 backdrop-blur-md" 
-            : "py-6 bg-navy-950/40 backdrop-blur-sm"
+          isScrolled
+            ? "py-4 bg-navy-950/80 backdrop-blur-md"
+            : "py-6 bg-transparent"
         }`}
         initial={{ y: -100, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
