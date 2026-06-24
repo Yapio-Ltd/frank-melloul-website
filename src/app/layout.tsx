@@ -3,6 +3,7 @@ import dynamic from "next/dynamic";
 import "./globals.css";
 import { LanguageProvider } from "@/context/LanguageContext";
 import PreloadResources from "@/components/PreloadResources";
+import ConsentBanner from "@/components/ConsentBanner";
 import { Toaster } from "sonner";
 
 // Dynamic imports for client-side only components (reduces initial bundle)
@@ -174,8 +175,45 @@ export default function RootLayout({
             __html: `
               window.dataLayer = window.dataLayer || [];
               function gtag(){dataLayer.push(arguments);}
-              gtag('js', new Date());
-              gtag('config', 'AW-18259962578');
+              var GOOGLE_TAG_ID = 'AW-18259962578';
+              var CONSENT_KEY = 'cookie-consent-v1';
+              var consentDenied = {
+                ad_storage: 'denied',
+                analytics_storage: 'denied',
+                ad_user_data: 'denied',
+                ad_personalization: 'denied'
+              };
+              var consentGranted = {
+                ad_storage: 'granted',
+                analytics_storage: 'granted',
+                ad_user_data: 'granted',
+                ad_personalization: 'granted'
+              };
+
+              gtag('consent', 'default', consentDenied);
+
+              window.__gtagConfigured = false;
+              window.__grantGoogleConsent = function() {
+                gtag('consent', 'update', consentGranted);
+                if (!window.__gtagConfigured) {
+                  gtag('js', new Date());
+                  gtag('config', GOOGLE_TAG_ID);
+                  window.__gtagConfigured = true;
+                }
+              };
+
+              window.__denyGoogleConsent = function() {
+                gtag('consent', 'update', consentDenied);
+              };
+
+              try {
+                var savedConsent = localStorage.getItem(CONSENT_KEY);
+                if (savedConsent === 'accepted') {
+                  window.__grantGoogleConsent();
+                } else if (savedConsent === 'rejected') {
+                  window.__denyGoogleConsent();
+                }
+              } catch (e) {}
             `,
           }}
         />
@@ -216,6 +254,7 @@ export default function RootLayout({
           <SmoothScrollProvider>
             {children}
           </SmoothScrollProvider>
+          <ConsentBanner />
         </LanguageProvider>
 
         <Toaster
