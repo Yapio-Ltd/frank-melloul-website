@@ -11,7 +11,7 @@ import { useSearchParams } from "next/navigation";
 import { supabase, SUPABASE_MEDIA_BUCKET } from "@/lib/supabaseClient";
 import { htmlToPlainText } from "@/lib/utils";
 import { toast } from "sonner";
-import { pickLocalizedText, Locale, buildLocalizedPath, LOCALE_PREFIX } from "@/lib/locale";
+import { pickLocalizedText, hasLocalizedText, Locale, buildLocalizedPath, LOCALE_PREFIX } from "@/lib/locale";
 
 const pageTranslations = {
   en: {
@@ -189,22 +189,30 @@ export default function CommunicationPageClient() {
       const videoRows = (videosRes.data ?? []) as VideoDbRow[];
       const articleRows = (articlesRes.data ?? []) as ArticleDbRow[];
 
-      const mapped = videoRows.map((row) => ({
-        id: row.id,
-        thumbnail: getPublicUrl(row.thumbnail_path),
-        title: pickLocalizedText(row as unknown as Record<string, unknown>, "title", locale),
-        description: pickLocalizedText(row as unknown as Record<string, unknown>, "description", locale),
-        videoUrl: getPublicUrl(row.video_path),
-        externalUrl: row.external_url ?? null,
-      }));
-      const mappedArticles = articleRows.map((row) => ({
-        id: row.id,
-        slug: row.slug ?? null,
-        title: pickLocalizedText(row as unknown as Record<string, unknown>, "title", locale),
-        content: pickLocalizedText(row as unknown as Record<string, unknown>, "content", locale),
-        image: getPublicUrl(row.image_path),
-        externalUrl: row.external_url ?? null,
-      }));
+      const mapped = videoRows
+        .filter((row) =>
+          hasLocalizedText(row as unknown as Record<string, unknown>, "title", locale)
+        )
+        .map((row) => ({
+          id: row.id,
+          thumbnail: getPublicUrl(row.thumbnail_path),
+          title: pickLocalizedText(row as unknown as Record<string, unknown>, "title", locale),
+          description: pickLocalizedText(row as unknown as Record<string, unknown>, "description", locale),
+          videoUrl: getPublicUrl(row.video_path),
+          externalUrl: row.external_url ?? null,
+        }));
+      const mappedArticles = articleRows
+        .filter((row) =>
+          hasLocalizedText(row as unknown as Record<string, unknown>, "title", locale)
+        )
+        .map((row) => ({
+          id: row.id,
+          slug: row.slug ?? null,
+          title: pickLocalizedText(row as unknown as Record<string, unknown>, "title", locale),
+          content: pickLocalizedText(row as unknown as Record<string, unknown>, "content", locale),
+          image: getPublicUrl(row.image_path),
+          externalUrl: row.external_url ?? null,
+        }));
 
       setVideos(mapped);
       setArticles(mappedArticles);

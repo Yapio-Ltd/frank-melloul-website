@@ -77,6 +77,29 @@ export function pickLocalizedText(
   return String(row[field] ?? "");
 }
 
+/**
+ * Returns the column name that holds the native content for a given locale.
+ * The base column (no suffix) holds the French content.
+ */
+function localizedColumn(field: string, locale: Locale): string {
+  if (locale === "en") return `${field}_en`;
+  if (locale === "ar") return `${field}_ar`;
+  return field;
+}
+
+/**
+ * True when the row has its own (non-empty) content for the given locale,
+ * without relying on a fallback to another language.
+ */
+export function hasLocalizedText(
+  row: Record<string, unknown>,
+  field: string,
+  locale: Locale
+): boolean {
+  const value = row[localizedColumn(field, locale)];
+  return typeof value === "string" && value.trim().length > 0;
+}
+
 export const LANGUAGE_ALTERNATES: Record<Locale, string> = {
   en: "/",
   fr: "/fr",
