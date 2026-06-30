@@ -159,7 +159,7 @@ async function buildSchemaFr() {
       publisher: {
         "@type": "Organization",
         name: "Melloul & Partners",
-        logo: { "@type": "ImageObject", url: `${SITE_URL}/only_gold_logo.png` },
+        logo: { "@type": "ImageObject", url: `${SITE_URL}/only_gold_logo.webp` },
       },
     });
   });

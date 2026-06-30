@@ -130,7 +130,7 @@ export default async function ArticleArPage({ params }: Props) {
           url: `${SITE_URL}/`,
           logo: {
             "@type": "ImageObject",
-            url: `${SITE_URL}/only_gold_logo.png`,
+            url: `${SITE_URL}/only_gold_logo.webp`,
           },
         },
         isPartOf: { "@id": `${SITE_URL}/#website` },

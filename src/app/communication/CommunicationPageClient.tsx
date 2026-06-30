@@ -2,6 +2,7 @@
 
 import { motion, AnimatePresence } from "framer-motion";
 import Link from "next/link";
+import Image from "next/image";
 import { useLanguage } from "@/context/LanguageContext";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
@@ -544,10 +545,12 @@ function VideoCard({
         onClick={handleClick}
         className="relative aspect-video mb-3 overflow-hidden rounded-xl bg-navy-800 w-full text-left"
       >
-        <img
+        <Image
           src={video.thumbnail}
           alt={video.title}
-          className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+          fill
+          sizes="(max-width: 768px) 100vw, 33vw"
+          className="object-cover transition-transform duration-500 group-hover:scale-105"
         />
         {isExternal && (
           <div className="absolute top-2 right-2 bg-black/60 rounded-md px-2 py-1 flex items-center gap-1">
@@ -879,10 +882,12 @@ function ArticleCard({
 
   const thumbnail = (
     <div className="relative aspect-video mb-3 overflow-hidden rounded-xl bg-navy-800 w-full">
-      <img
+      <Image
         src={article.image}
         alt={article.title}
-        className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+        fill
+        sizes="(max-width: 768px) 100vw, 33vw"
+        className="object-cover transition-transform duration-500 group-hover:scale-105"
         loading="lazy"
       />
       {isExternal && (

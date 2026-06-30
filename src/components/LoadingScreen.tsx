@@ -10,7 +10,7 @@ export default function LoadingScreen() {
   useEffect(() => {
     // Preload the logo image
     const img = new window.Image();
-    img.src = "/only_gold_logo.png";
+    img.src = "/only_gold_logo.webp";
     img.onload = () => setIsLogoLoaded(true);
   }, []);
 
@@ -52,7 +52,7 @@ export default function LoadingScreen() {
             >
               {/* Using native img to avoid Next.js image optimization placeholder */}
               <img
-                src="/only_gold_logo.png"
+                src="/only_gold_logo.webp"
                 alt="Melloul & Partners"
                 width={250}
                 height={250}

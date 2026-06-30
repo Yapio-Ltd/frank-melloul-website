@@ -6,7 +6,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "migrate:images": "tsx --env-file=.env scripts/migrate-images-to-webp.ts"
   },
   "dependencies": {
     "@studio-freight/lenis": "^1.0.42",
@@ -24,6 +25,8 @@
     "next": "14.2.15",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
+    "server-only": "^0.0.1",
+    "sharp": "^0.35.2",
     "sonner": "^2.0.7",
     "tailwind-merge": "^2.5.4",
     "unicornstudio-react": "^2.1.12"
@@ -36,6 +39,7 @@
     "eslint-config-next": "14.2.15",
     "postcss": "^8.4.47",
     "tailwindcss": "^3.4.14",
+    "tsx": "^4.22.4",
     "typescript": "^5.6.3"
   }
 }

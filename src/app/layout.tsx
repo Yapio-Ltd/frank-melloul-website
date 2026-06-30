@@ -192,15 +192,11 @@ export default function RootLayout({
               };
 
               gtag('consent', 'default', consentDenied);
+              gtag('js', new Date());
+              gtag('config', GOOGLE_TAG_ID);
 
-              window.__gtagConfigured = false;
               window.__grantGoogleConsent = function() {
                 gtag('consent', 'update', consentGranted);
-                if (!window.__gtagConfigured) {
-                  gtag('js', new Date());
-                  gtag('config', GOOGLE_TAG_ID);
-                  window.__gtagConfigured = true;
-                }
               };
 
               window.__denyGoogleConsent = function() {

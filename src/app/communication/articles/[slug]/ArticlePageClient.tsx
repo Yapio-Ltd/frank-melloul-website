@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { AnimatePresence, motion } from "framer-motion";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
@@ -203,10 +204,13 @@ export default function ArticlePageClient({
           <>
             {/* Hero image */}
             <div className="relative w-full h-[60vh] overflow-hidden">
-              <img
+              <Image
                 src={getPublicUrl(article.image_path)}
                 alt={article.title}
-                className="w-full h-full object-cover object-center"
+                fill
+                sizes="100vw"
+                priority
+                className="object-cover object-center"
               />
               <div className="absolute inset-0 bg-gradient-to-b from-black/20 via-transparent to-navy-950" />
             </div>
@@ -328,10 +332,12 @@ export default function ArticlePageClient({
                     {/* Author signature */}
                     <footer className="mt-16 pt-8 border-t border-gold-500/20">
                       <div className="flex items-center gap-4">
-                        <img
-                          src="/avatar_to_circle.png"
+                        <Image
+                          src="/avatar_to_circle.webp"
                           alt="Frank Melloul"
-                          className="w-12 h-12 rounded-full object-cover shrink-0 ring-2 ring-gold-500/30"
+                          width={48}
+                          height={48}
+                          className="rounded-full object-cover shrink-0 ring-2 ring-gold-500/30"
                         />
                         <div>
                           <p className="text-xs text-primary-500 uppercase tracking-widest mb-0.5">
@@ -378,11 +384,13 @@ export default function ArticlePageClient({
                             className="group flex gap-3 items-start p-3 rounded-lg border border-gold-500/10 bg-navy-900/40 hover:border-gold-500/30 hover:bg-navy-800/60 transition-all duration-200"
                           >
                             {rel.image_path && (
-                              <div className="w-20 h-16 shrink-0 overflow-hidden rounded-md">
-                                <img
+                              <div className="relative w-20 h-16 shrink-0 overflow-hidden rounded-md">
+                                <Image
                                   src={getPublicUrl(rel.image_path)}
                                   alt={rel.title}
-                                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                                  fill
+                                  sizes="80px"
+                                  className="object-cover group-hover:scale-105 transition-transform duration-300"
                                 />
                               </div>
                             )}

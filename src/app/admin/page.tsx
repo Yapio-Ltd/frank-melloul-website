@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { supabase, SUPABASE_MEDIA_BUCKET } from "@/lib/supabaseClient";
+import { uploadMedia } from "@/lib/uploadMedia";
 import dynamic from "next/dynamic";
 
 const RichTextEditor = dynamic(() => import("@/components/RichTextEditor"), {
@@ -904,11 +905,20 @@ function VideoForm({
     let nextVideoPath = initial?.video_path ?? "";
     let nextThumbPath = initial?.thumbnail_path ?? "";
 
-    const uploadFile = async (folder: "videos" | "thumbnails", file: File) => {
+    const { data: sessionData, error: sessionError } =
+      await client.auth.getSession();
+    if (sessionError || !sessionData.session) {
+      toast.error("Session expirée. Reconnectez-vous.");
+      setSaving(false);
+      setSavingStep("idle");
+      return;
+    }
+    const accessToken = sessionData.session.access_token;
+
+    const uploadVideoFile = async (file: File) => {
       const ext = sanitizeFilename(file.name);
-      const path = `${folder}/${id}/${nowPrefix}-${ext}`;
+      const path = `videos/${id}/${nowPrefix}-${ext}`;
       const { error } = await client.storage.from(SUPABASE_MEDIA_BUCKET).upload(path, file, {
-        // Les chemins sont versionnés (timestamp) -> cache long OK
         cacheControl: "31536000",
         upsert: false,
         contentType: file.type || undefined,
@@ -920,7 +930,12 @@ function VideoForm({
     try {
       if (thumbFile) {
         setSavingStep("thumbnail");
-        const uploadedThumbPath = await uploadFile("thumbnails", thumbFile);
+        const uploadedThumbPath = await uploadMedia(
+          "thumbnails",
+          id,
+          thumbFile,
+          accessToken
+        );
         if (initial?.thumbnail_path) {
           await client.storage
             .from(SUPABASE_MEDIA_BUCKET)
@@ -931,7 +946,7 @@ function VideoForm({
 
       if (videoFile) {
         setSavingStep("video");
-        const uploadedVideoPath = await uploadFile("videos", videoFile);
+        const uploadedVideoPath = await uploadVideoFile(videoFile);
         if (initial?.video_path) {
           await client.storage.from(SUPABASE_MEDIA_BUCKET).remove([initial.video_path]);
         }
@@ -1563,7 +1578,6 @@ function ArticleForm({
 
     setSaving(true);
     const id = initial?.id ?? crypto.randomUUID();
-    const nowPrefix = `${Date.now()}`;
     let nextImagePath = initial?.image_path ?? "";
 
     try {
@@ -1575,16 +1589,18 @@ function ArticleForm({
       if (finalSlug !== slug) setSlug(finalSlug);
 
       if (imageFile) {
-        const filename = sanitizeFilename(imageFile.name);
-        const path = `articles/${id}/${nowPrefix}-${filename}`;
-        const { error: uploadError } = await client.storage
-          .from(SUPABASE_MEDIA_BUCKET)
-          .upload(path, imageFile, {
-            cacheControl: "31536000",
-            upsert: false,
-            contentType: imageFile.type || undefined,
-          });
-        if (uploadError) throw uploadError;
+        const { data: sessionData, error: sessionError } =
+          await client.auth.getSession();
+        if (sessionError || !sessionData.session) {
+          throw new Error("Session expirée. Reconnectez-vous.");
+        }
+
+        const path = await uploadMedia(
+          "articles",
+          id,
+          imageFile,
+          sessionData.session.access_token
+        );
 
         if (initial?.image_path) {
           await client.storage.from(SUPABASE_MEDIA_BUCKET).remove([initial.image_path]);

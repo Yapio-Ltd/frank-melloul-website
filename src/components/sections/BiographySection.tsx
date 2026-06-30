@@ -55,7 +55,7 @@ export default function BiographySection() {
             >
               {/* Frank Melloul Photo */}
               <img
-                src="/frank_melloul_avatar.jpeg"
+                src="/frank_melloul_avatar.webp"
                 alt="Frank Melloul - Founder of Melloul & Partners"
                 className="h-full w-full object-cover object-center"
                 loading="eager"
