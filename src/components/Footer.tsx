@@ -64,6 +64,7 @@ export default function Footer() {
           >
             <Link
               href="mailto:contact@melloulandpartners.com"
+              data-mailto-location="footer"
               className="text-primary-300 hover:text-gold-500 text-sm transition-colors duration-300 animated-underline"
             >
               contact@melloulandpartners.com

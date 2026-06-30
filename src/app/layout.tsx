@@ -4,6 +4,7 @@ import "./globals.css";
 import { LanguageProvider } from "@/context/LanguageContext";
 import PreloadResources from "@/components/PreloadResources";
 import ConsentBanner from "@/components/ConsentBanner";
+import GtagMailToTracker from "@/components/GtagMailToTracker";
 import { Toaster } from "sonner";
 
 // Dynamic imports for client-side only components (reduces initial bundle)
@@ -255,6 +256,7 @@ export default function RootLayout({
             {children}
           </SmoothScrollProvider>
           <ConsentBanner />
+          <GtagMailToTracker />
         </LanguageProvider>
 
         <Toaster

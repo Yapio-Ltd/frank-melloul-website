@@ -68,7 +68,10 @@ export default function ContactSection() {
             animate={isInView ? { opacity: 1, y: 0 } : {}}
             transition={{ duration: 0.8, delay: 0.4 }}
           >
-            <Link href="mailto:contact@melloulandpartners.com">
+            <Link
+              href="mailto:contact@melloulandpartners.com"
+              data-mailto-location="contact_section"
+            >
               <motion.button
                 className="btn-primary text-lg px-12 py-5"
                 whileHover={{ scale: 1.02 }}
