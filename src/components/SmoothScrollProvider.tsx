@@ -14,23 +14,11 @@ export default function SmoothScrollProvider({
   const rafRef = useRef<number | null>(null);
 
   const raf = useCallback((time: number) => {
-    const lenis = lenisRef.current;
-    if (!lenis) return;
-
-    lenis.raf(time);
-
-    if (lenis.isScrolling) {
+    if (lenisRef.current) {
+      lenisRef.current.raf(time);
       rafRef.current = requestAnimationFrame(raf);
-    } else {
-      rafRef.current = null;
     }
   }, []);
-
-  const startRaf = useCallback(() => {
-    if (!rafRef.current) {
-      rafRef.current = requestAnimationFrame(raf);
-    }
-  }, [raf]);
 
   useEffect(() => {
     const isMobile = window.innerWidth < 768;
@@ -46,7 +34,7 @@ export default function SmoothScrollProvider({
     });
 
     lenisRef.current = lenis;
-    lenis.on("scroll", startRaf);
+    rafRef.current = requestAnimationFrame(raf);
 
     const handleAnchorClick = (e: MouseEvent) => {
       const target = e.target as HTMLElement;
@@ -58,7 +46,6 @@ export default function SmoothScrollProvider({
           const element = document.querySelector(href);
           if (element) {
             lenis.scrollTo(element as HTMLElement, { offset: -100 });
-            startRaf();
           }
         }
       }
@@ -75,7 +62,7 @@ export default function SmoothScrollProvider({
       lenisRef.current = null;
       document.removeEventListener("click", handleAnchorClick);
     };
-  }, [raf, startRaf]);
+  }, [raf]);
 
   return <>{children}</>;
 }
