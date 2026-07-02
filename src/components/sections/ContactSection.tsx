@@ -4,11 +4,13 @@ import { useRef } from "react";
 import { motion, useInView } from "framer-motion";
 import Link from "next/link";
 import { useLanguage } from "@/context/LanguageContext";
+import { usePrefersReducedMotion } from "@/hooks/usePrefersReducedMotion";
 
 export default function ContactSection() {
   const sectionRef = useRef<HTMLElement>(null);
   const isInView = useInView(sectionRef, { once: true, amount: 0.1 });
   const { t } = useLanguage();
+  const prefersReducedMotion = usePrefersReducedMotion();
 
   return (
     <section
@@ -26,10 +28,8 @@ export default function ContactSection() {
           background:
             "radial-gradient(circle, rgba(201, 162, 19, 0.05) 0%, transparent 70%)",
         }}
-        animate={{
-          scale: [1, 1.1, 1],
-        }}
-        transition={{ duration: 8, repeat: Infinity, ease: "easeInOut" }}
+        animate={prefersReducedMotion ? undefined : { scale: [1, 1.1, 1] }}
+        transition={{ duration: 8, repeat: prefersReducedMotion ? 0 : Infinity, ease: "easeInOut" }}
       />
 
       <div className="container mx-auto px-6 md:px-12 lg:px-20 relative z-10">
@@ -80,8 +80,8 @@ export default function ContactSection() {
                 {t.contact.button}
                 <motion.span
                   className="inline-block ml-2"
-                  animate={{ x: [0, 4, 0] }}
-                  transition={{ duration: 1.5, repeat: Infinity }}
+                  animate={prefersReducedMotion ? undefined : { x: [0, 4, 0] }}
+                  transition={{ duration: 1.5, repeat: prefersReducedMotion ? 0 : Infinity }}
                 >
                   →
                 </motion.span>

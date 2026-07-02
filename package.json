@@ -7,7 +7,8 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "migrate:images": "tsx --env-file=.env scripts/migrate-images-to-webp.ts"
+    "migrate:images": "tsx --env-file=.env scripts/migrate-images-to-webp.ts",
+    "perf:measure": "node scripts/perf-measure.mjs"
   },
   "dependencies": {
     "@studio-freight/lenis": "^1.0.42",
@@ -21,7 +22,6 @@
     "@tiptap/starter-kit": "^3.22.3",
     "clsx": "^2.1.1",
     "framer-motion": "^11.11.9",
-    "gsap": "^3.12.5",
     "next": "14.2.15",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
@@ -37,7 +37,9 @@
     "@types/react-dom": "^18.3.1",
     "eslint": "^8.57.1",
     "eslint-config-next": "14.2.15",
+    "lighthouse": "^12.8.2",
     "postcss": "^8.4.47",
+    "puppeteer": "^25.3.0",
     "tailwindcss": "^3.4.14",
     "tsx": "^4.22.4",
     "typescript": "^5.6.3"

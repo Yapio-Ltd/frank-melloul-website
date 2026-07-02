@@ -3,11 +3,13 @@
 import { useRef, memo } from "react";
 import { motion, useScroll, useTransform } from "framer-motion";
 import { useLanguage } from "@/context/LanguageContext";
+import { usePrefersReducedMotion } from "@/hooks/usePrefersReducedMotion";
 import HeroUnicornBackground from "./HeroUnicornBackground";
 
 function HeroSection() {
   const sectionRef = useRef<HTMLElement>(null);
   const { t } = useLanguage();
+  const prefersReducedMotion = usePrefersReducedMotion();
 
   const { scrollYProgress } = useScroll({
     target: sectionRef,
@@ -74,8 +76,8 @@ function HeroSection() {
       >
         <motion.div
           className="flex flex-col items-center gap-2"
-          animate={{ y: [0, 10, 0] }}
-          transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
+          animate={prefersReducedMotion ? undefined : { y: [0, 10, 0] }}
+          transition={{ duration: 2, repeat: prefersReducedMotion ? 0 : Infinity, ease: "easeInOut" }}
         >
           <span className="text-primary-400 text-xs tracking-widest uppercase">
             {t.hero.discover}
@@ -98,7 +100,7 @@ function HeroSection() {
 
       {/* Decorative elements */}
       <div
-        className="absolute top-1/4 right-10 w-72 h-72 rounded-full animate-pulse-slow pointer-events-none z-[1]"
+        className={`absolute top-1/4 right-10 w-72 h-72 rounded-full pointer-events-none z-[1]${prefersReducedMotion ? "" : " animate-pulse-slow"}`}
         style={{
           background:
             "radial-gradient(circle, rgba(201, 162, 19, 0.05) 0%, transparent 70%)",
@@ -106,7 +108,7 @@ function HeroSection() {
       />
 
       <div
-        className="absolute bottom-1/4 left-10 w-96 h-96 rounded-full animate-pulse-slower pointer-events-none z-[1]"
+        className={`absolute bottom-1/4 left-10 w-96 h-96 rounded-full pointer-events-none z-[1]${prefersReducedMotion ? "" : " animate-pulse-slower"}`}
         style={{
           background:
             "radial-gradient(circle, rgba(201, 162, 19, 0.03) 0%, transparent 70%)",

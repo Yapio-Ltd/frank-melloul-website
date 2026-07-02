@@ -3,23 +3,34 @@
 import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 
+const MIN_DISPLAY_MS = 1500;
+
 export default function LoadingScreen() {
   const [isLoading, setIsLoading] = useState(true);
   const [isLogoLoaded, setIsLogoLoaded] = useState(false);
 
   useEffect(() => {
-    // Preload the logo image
     const img = new window.Image();
     img.src = "/only_gold_logo.webp";
     img.onload = () => setIsLogoLoaded(true);
   }, []);
 
   useEffect(() => {
-    const timer = setTimeout(() => {
-      setIsLoading(false);
-    }, 4000); // Augmenté à 4 secondes pour voir le logo arrêté quelques secondes
+    const start = Date.now();
 
-    return () => clearTimeout(timer);
+    const finishLoading = () => {
+      const elapsed = Date.now() - start;
+      const remaining = Math.max(0, MIN_DISPLAY_MS - elapsed);
+      setTimeout(() => setIsLoading(false), remaining);
+    };
+
+    if (document.readyState === "complete") {
+      finishLoading();
+      return;
+    }
+
+    window.addEventListener("load", finishLoading, { once: true });
+    return () => window.removeEventListener("load", finishLoading);
   }, []);
 
   return (
@@ -38,19 +49,7 @@ export default function LoadingScreen() {
             transition={{ duration: 0.5 }}
             className="relative"
           >
-            <motion.div
-              animate={{
-                opacity: [0.4, 1, 1, 1, 0.4], // Reste à 1 plus longtemps
-                scale: [0.98, 1, 1, 1, 0.98],
-              }}
-              transition={{
-                duration: 3.5, // Animation plus longue
-                repeat: Infinity,
-                ease: "easeInOut",
-              }}
-              className="flex flex-col items-center gap-6"
-            >
-              {/* Using native img to avoid Next.js image optimization placeholder */}
+            <div className="flex flex-col items-center gap-6">
               <img
                 src="/only_gold_logo.webp"
                 alt="Melloul & Partners"
@@ -58,9 +57,8 @@ export default function LoadingScreen() {
                 height={250}
                 style={{ objectFit: "contain" }}
               />
-            </motion.div>
+            </div>
 
-            {/* Loading bar */}
             <motion.div
               className="absolute -bottom-8 left-1/2 -translate-x-1/2 h-[1px] bg-gold-500/30 overflow-hidden"
               initial={{ width: 0 }}
@@ -72,9 +70,8 @@ export default function LoadingScreen() {
                 initial={{ x: "-100%" }}
                 animate={{ x: "100%" }}
                 transition={{
-                  duration: 1,
-                  repeat: Infinity,
-                  ease: "linear",
+                  duration: 1.2,
+                  ease: "easeInOut",
                 }}
                 style={{ width: "50%" }}
               />
@@ -85,4 +82,3 @@ export default function LoadingScreen() {
     </AnimatePresence>
   );
 }
-
