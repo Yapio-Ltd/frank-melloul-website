@@ -7,6 +7,13 @@ import { usePathname } from "next/navigation";
 import { useLanguage } from "@/context/LanguageContext";
 import LanguageSwitcher from "./LanguageSwitcher";
 import { LOCALE_PREFIX, getLocaleFromPath } from "@/lib/locale";
+import {
+  reportBiographyConversion,
+  reportCommunicationConversion,
+  reportEmailConversion,
+  reportServicesConversion,
+  toAbsoluteUrl,
+} from "@/lib/gtag";
 
 export default function Header() {
   const [isScrolled, setIsScrolled] = useState(false);
@@ -48,18 +55,42 @@ export default function Header() {
     }
   }, [isHomePage]);
 
+  const mailtoUrl = "mailto:contact@melloulandpartners.com";
+
+  const handleMailtoClick = (event: React.MouseEvent<HTMLAnchorElement>) => {
+    reportEmailConversion(mailtoUrl, event);
+  };
+
   // Build navigation items with proper links based on current page
   const navItems = [
     {
       name: t.nav.services,
       href: isHomePage ? "#services" : `${basePrefix}/#services`,
+      onClick: (event: React.MouseEvent<HTMLAnchorElement>) => {
+        reportServicesConversion(toAbsoluteUrl(event.currentTarget.href), event);
+      },
     },
-    { name: t.nav.about, href: isHomePage ? "#about" : `${basePrefix}/#about` },
+    {
+      name: t.nav.about,
+      href: isHomePage ? "#about" : `${basePrefix}/#about`,
+    },
     {
       name: t.nav.biography,
       href: isHomePage ? "#biography" : `${basePrefix}/#biography`,
+      onClick: (event: React.MouseEvent<HTMLAnchorElement>) => {
+        reportBiographyConversion(toAbsoluteUrl(event.currentTarget.href), event);
+      },
     },
-    { name: t.nav.communication, href: `${basePrefix}/communication` },
+    {
+      name: t.nav.communication,
+      href: `${basePrefix}/communication`,
+      onClick: (event: React.MouseEvent<HTMLAnchorElement>) => {
+        reportCommunicationConversion(
+          toAbsoluteUrl(event.currentTarget.href),
+          event
+        );
+      },
+    },
   ];
 
   return (
@@ -104,6 +135,7 @@ export default function Header() {
                 >
                   <Link
                     href={item.href}
+                    onClick={item.onClick}
                     className="text-primary-200 hover:text-gold-500 text-sm tracking-widest uppercase font-medium transition-colors duration-300 animated-underline"
                   >
                     {item.name}
@@ -128,7 +160,8 @@ export default function Header() {
                 transition={{ duration: 0.4, delay: hasAnimated ? 0 : 1.4 }}
               >
                 <Link
-                  href="mailto:contact@melloulandpartners.com"
+                  href={mailtoUrl}
+                  onClick={handleMailtoClick}
                   data-mailto-location="header_desktop"
                   className="group flex items-center gap-2 text-primary-200 hover:text-gold-500 text-sm tracking-widest uppercase font-medium transition-colors duration-300"
                 >
@@ -200,7 +233,10 @@ export default function Header() {
                   <Link
                     href={item.href}
                     className="text-3xl font-serif text-primary-100 hover:text-gold-500 transition-colors"
-                    onClick={() => setIsMobileMenuOpen(false)}
+                    onClick={(event) => {
+                      item.onClick?.(event);
+                      setIsMobileMenuOpen(false);
+                    }}
                   >
                     {item.name}
                   </Link>
@@ -213,10 +249,13 @@ export default function Header() {
                 transition={{ duration: 0.4, delay: 0.3 }}
               >
                 <Link
-                  href="mailto:contact@melloulandpartners.com"
+                  href={mailtoUrl}
                   data-mailto-location="header_mobile"
                   className="mt-8 btn-primary"
-                  onClick={() => setIsMobileMenuOpen(false)}
+                  onClick={(event) => {
+                    handleMailtoClick(event);
+                    setIsMobileMenuOpen(false);
+                  }}
                 >
                   {t.nav.contact} →
                 </Link>

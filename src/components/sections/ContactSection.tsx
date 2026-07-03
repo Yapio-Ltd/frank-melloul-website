@@ -5,6 +5,7 @@ import { motion, useInView } from "framer-motion";
 import Link from "next/link";
 import { useLanguage } from "@/context/LanguageContext";
 import { usePrefersReducedMotion } from "@/hooks/usePrefersReducedMotion";
+import { reportContactFormConversion } from "@/lib/gtag";
 
 export default function ContactSection() {
   const sectionRef = useRef<HTMLElement>(null);
@@ -71,6 +72,12 @@ export default function ContactSection() {
             <Link
               href="mailto:contact@melloulandpartners.com"
               data-mailto-location="contact_section"
+              onClick={(event) =>
+                reportContactFormConversion(
+                  "mailto:contact@melloulandpartners.com",
+                  event
+                )
+              }
             >
               <motion.button
                 className="btn-primary text-lg px-12 py-5"

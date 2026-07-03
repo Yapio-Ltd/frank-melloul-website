@@ -6,6 +6,7 @@ import { useLanguage } from "@/context/LanguageContext";
 import { useRouter } from "next/navigation";
 import { useRef } from "react";
 import { buildLocalizedPath } from "@/lib/locale";
+import { reportEmailConversion } from "@/lib/gtag";
 
 export default function Footer() {
   const { t, locale } = useLanguage();
@@ -65,6 +66,12 @@ export default function Footer() {
             <Link
               href="mailto:contact@melloulandpartners.com"
               data-mailto-location="footer"
+              onClick={(event) =>
+                reportEmailConversion(
+                  "mailto:contact@melloulandpartners.com",
+                  event
+                )
+              }
               className="text-primary-300 hover:text-gold-500 text-sm transition-colors duration-300 animated-underline"
             >
               contact@melloulandpartners.com

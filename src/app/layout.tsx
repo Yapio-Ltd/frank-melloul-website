@@ -214,6 +214,72 @@ export default function RootLayout({
             `,
           }}
         />
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              function gtag_report_contact_form_conversion(url) {
+                var callback = function () {
+                  if (typeof(url) != 'undefined') { window.location = url; }
+                };
+                gtag('event', 'conversion', {
+                  'send_to': 'AW-18259962578/6YVFCOqB48gcENLVg4NE',
+                  'value': 1.0,
+                  'currency': 'AED',
+                  'event_callback': callback
+                });
+                return false;
+              }
+              function gtag_report_email_conversion(url) {
+                var callback = function () {
+                  if (typeof(url) != 'undefined') { window.location = url; }
+                };
+                gtag('event', 'conversion', {
+                  'send_to': 'AW-18259962578/L1kyCJC258gcENLVg4NE',
+                  'value': 1.0,
+                  'currency': 'AED',
+                  'event_callback': callback
+                });
+                return false;
+              }
+              function gtag_report_services_conversion(url) {
+                var callback = function () {
+                  if (typeof(url) != 'undefined') { window.location = url; }
+                };
+                gtag('event', 'conversion', {
+                  'send_to': 'AW-18259962578/qEV9COaX6MgcENLVg4NE',
+                  'value': 1.0,
+                  'currency': 'AED',
+                  'event_callback': callback
+                });
+                return false;
+              }
+              function gtag_report_biography_conversion(url) {
+                var callback = function () {
+                  if (typeof(url) != 'undefined') { window.location = url; }
+                };
+                gtag('event', 'conversion', {
+                  'send_to': 'AW-18259962578/8YsdCPva6MgcENLVg4NE',
+                  'value': 1.0,
+                  'currency': 'AED',
+                  'event_callback': callback
+                });
+                return false;
+              }
+              function gtag_report_communication_conversion(url) {
+                var callback = function () {
+                  if (typeof(url) != 'undefined') { window.location = url; }
+                };
+                gtag('event', 'conversion', {
+                  'send_to': 'AW-18259962578/3xT4CLbX6MgcENLVg4NE',
+                  'value': 1.0,
+                  'currency': 'AED',
+                  'event_callback': callback
+                });
+                return false;
+              }
+            `,
+          }}
+        />
 
         {/* Inline script for immediate preload - executes before React hydration */}
         <script
