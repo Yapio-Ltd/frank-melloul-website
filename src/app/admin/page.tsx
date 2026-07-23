@@ -5,6 +5,7 @@ import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { supabase, SUPABASE_MEDIA_BUCKET } from "@/lib/supabaseClient";
 import { uploadMedia } from "@/lib/uploadMedia";
+import { htmlToPlainText } from "@/lib/utils";
 import dynamic from "next/dynamic";
 
 const RichTextEditor = dynamic(() => import("@/components/RichTextEditor"), {
@@ -1381,8 +1382,8 @@ function ArticlesDashboard() {
                         </a>
                       )}
                       {a.content ? (
-                        <p className="text-primary-400 text-sm mt-2 line-clamp-3 whitespace-pre-line">
-                          {a.content}
+                        <p className="text-primary-400 text-sm mt-2 line-clamp-3">
+                          {htmlToPlainText(a.content)}
                         </p>
                       ) : null}
                       <p className="text-primary-600 text-xs mt-2">
