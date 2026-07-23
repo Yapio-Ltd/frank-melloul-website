@@ -1,24 +1,25 @@
 # Optimisation images WebP — déploiement
 
-## Variable d'environnement requise (Render)
+## Variables d'environnement
 
-Ajouter sur le service Render (build **et** runtime) :
+Toujours nécessaires (Render + local) :
+
+- `NEXT_PUBLIC_SUPABASE_URL`
+- `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_DEFAULT_KEY`
+
+### `SUPABASE_SERVICE_ROLE_KEY` (migration uniquement)
 
 | Variable | Où la trouver |
 |----------|----------------|
 | `SUPABASE_SERVICE_ROLE_KEY` | Supabase Dashboard → Settings → API → `service_role` (secret) |
 
-Cette clé est utilisée par :
+Cette clé n’est **pas** requise pour l’upload admin quotidien (`POST /api/upload-media` utilise le JWT de la session admin).
 
-- `POST /api/upload-media` — optimisation WebP à l'upload admin
+Elle est uniquement nécessaire pour :
+
 - `npm run migrate:images` — migration one-shot du stock existant
 
 **Ne jamais** exposer cette clé côté client (`NEXT_PUBLIC_*`).
-
-Les variables déjà présentes restent nécessaires :
-
-- `NEXT_PUBLIC_SUPABASE_URL`
-- `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_DEFAULT_KEY`
 
 ## Migration one-shot (après déploiement)
 
@@ -41,9 +42,11 @@ Le script est **idempotent** : les fichiers déjà en `.webp` sont ignorés.
 
 Depuis l'admin (`/admin`), les images d'articles et miniatures vidéo passent automatiquement par `/api/upload-media` :
 
+- Vérification de la session admin (Bearer JWT)
 - Redimensionnement (1920 px articles, 1280 px miniatures)
 - Conversion WebP qualité 80
 - Suppression des métadonnées EXIF
+- Upload Storage avec le JWT admin (pas de service role)
 
 Les fichiers vidéo (`.mp4`) ne sont pas convertis.
 

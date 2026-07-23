@@ -5,7 +5,7 @@ import {
   optimizeImage,
 } from "@/lib/imageOptimizer";
 import {
-  createServiceClient,
+  createUserClientFromToken,
   SUPABASE_MEDIA_BUCKET,
   verifyAdminSession,
 } from "@/lib/supabaseServer";
@@ -66,8 +66,8 @@ export async function POST(request: Request) {
       file.name
     );
 
-    const serviceClient = createServiceClient();
-    const { error } = await serviceClient.storage
+    const userClient = createUserClientFromToken(auth.accessToken);
+    const { error } = await userClient.storage
       .from(SUPABASE_MEDIA_BUCKET)
       .upload(path, buffer, {
         cacheControl: "31536000",
