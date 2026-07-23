@@ -1,5 +1,47 @@
 import { NextRequest, NextResponse } from "next/server";
 
+type HeaderProfile = Record<string, string>;
+
+function buildHeaderProfiles(origin: string): HeaderProfile[] {
+  return [
+    {
+      "User-Agent":
+        "Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)",
+      Accept: "text/html,application/xhtml+xml",
+    },
+    {
+      "User-Agent":
+        "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36",
+      Accept:
+        "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+      "Accept-Language": "fr-FR,fr;q=0.9",
+      Referer: origin,
+    },
+  ];
+}
+
+async function fetchWithUaCascade(
+  url: string,
+  profiles: HeaderProfile[]
+): Promise<{ response: Response; headers: HeaderProfile } | { lastStatus: number }> {
+  let lastStatus = 0;
+
+  for (const headers of profiles) {
+    const response = await fetch(url, {
+      headers,
+      signal: AbortSignal.timeout(10000),
+    });
+
+    if (response.ok) {
+      return { response, headers };
+    }
+
+    lastStatus = response.status;
+  }
+
+  return { lastStatus };
+}
+
 export async function GET(request: NextRequest) {
   const url = request.nextUrl.searchParams.get("url");
 
@@ -19,22 +61,17 @@ export async function GET(request: NextRequest) {
   }
 
   try {
-    const pageRes = await fetch(url, {
-      headers: {
-        "User-Agent":
-          "Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)",
-        Accept: "text/html,application/xhtml+xml",
-      },
-      signal: AbortSignal.timeout(10000),
-    });
+    const profiles = buildHeaderProfiles(parsed.origin);
+    const pageResult = await fetchWithUaCascade(url, profiles);
 
-    if (!pageRes.ok) {
+    if (!("response" in pageResult)) {
       return NextResponse.json(
-        { error: `Impossible de charger la page (${pageRes.status})` },
+        { error: `Impossible de charger la page (${pageResult.lastStatus})` },
         { status: 502 }
       );
     }
 
+    const { response: pageRes, headers: successHeaders } = pageResult;
     const html = await pageRes.text();
 
     // Helper to extract a meta tag content
@@ -96,7 +133,9 @@ export async function GET(request: NextRequest) {
       imageUrl = `${parsed.origin}${imageUrl}`;
     }
 
+    // Reuse the UA profile that succeeded for the page
     const imgRes = await fetch(imageUrl, {
+      headers: successHeaders,
       signal: AbortSignal.timeout(10000),
     });
 
