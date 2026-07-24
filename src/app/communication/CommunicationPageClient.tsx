@@ -94,6 +94,8 @@ interface VideoDbRow {
   description: string | null;
   title_en: string | null;
   description_en: string | null;
+  title_ar: string | null;
+  description_ar: string | null;
   video_path: string;
   thumbnail_path: string;
   external_url: string | null;
@@ -106,6 +108,8 @@ interface ArticleDbRow {
   content: string;
   title_en: string | null;
   content_en: string | null;
+  title_ar: string | null;
+  content_ar: string | null;
   image_path: string;
   external_url: string | null;
 }
@@ -152,24 +156,45 @@ export default function CommunicationPageClient() {
       }
 
       setLoading(true);
-      const [videosRes, articlesRes] = await Promise.all([
-        client!
+      const videoSelectWithAr =
+        "id,title,description,title_en,description_en,title_ar,description_ar,video_path,thumbnail_path,external_url,is_published,sort_order,created_at";
+      const videoSelectBase =
+        "id,title,description,title_en,description_en,video_path,thumbnail_path,external_url,is_published,sort_order,created_at";
+      const articleSelectWithAr =
+        "id,slug,title,content,title_en,content_en,title_ar,content_ar,image_path,external_url,is_published,sort_order,created_at";
+      const articleSelectBase =
+        "id,slug,title,content,title_en,content_en,image_path,external_url,is_published,sort_order,created_at";
+
+      let videosRes = await client!
+        .from("videos")
+        .select(videoSelectWithAr)
+        .eq("is_published", true)
+        .order("sort_order", { ascending: false })
+        .order("created_at", { ascending: false });
+      let articlesRes = await client!
+        .from("articles")
+        .select(articleSelectWithAr)
+        .eq("is_published", true)
+        .order("sort_order", { ascending: false })
+        .order("created_at", { ascending: false });
+
+      // Fallback if Arabic columns are not migrated yet
+      if (videosRes.error?.message?.includes("title_ar")) {
+        videosRes = (await client!
           .from("videos")
-          .select(
-            "id,title,description,title_en,description_en,video_path,thumbnail_path,external_url,is_published,sort_order,created_at"
-          )
+          .select(videoSelectBase)
           .eq("is_published", true)
           .order("sort_order", { ascending: false })
-          .order("created_at", { ascending: false }),
-        client!
+          .order("created_at", { ascending: false })) as typeof videosRes;
+      }
+      if (articlesRes.error?.message?.includes("title_ar")) {
+        articlesRes = (await client!
           .from("articles")
-          .select(
-            "id,slug,title,content,title_en,content_en,image_path,external_url,is_published,sort_order,created_at"
-          )
+          .select(articleSelectBase)
           .eq("is_published", true)
           .order("sort_order", { ascending: false })
-          .order("created_at", { ascending: false }),
-      ]);
+          .order("created_at", { ascending: false })) as typeof articlesRes;
+      }
 
       if (!mounted) return;
       setLoading(false);

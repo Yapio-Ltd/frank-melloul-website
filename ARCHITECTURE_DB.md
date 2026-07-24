@@ -7,6 +7,8 @@ CREATE TABLE public.articles (
   content text NOT NULL,
   title_en text,
   content_en text,
+  title_ar text,
+  content_ar text,
   image_path text NOT NULL,
   is_published boolean NOT NULL DEFAULT false,
   sort_order integer NOT NULL DEFAULT 0,
@@ -28,6 +30,8 @@ CREATE TABLE public.videos (
   sort_order integer NOT NULL DEFAULT 0,
   title_en text,
   description_en text,
+  title_ar text,
+  description_ar text,
   external_url text,
   CONSTRAINT videos_pkey PRIMARY KEY (id)
 );

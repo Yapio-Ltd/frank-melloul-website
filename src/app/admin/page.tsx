@@ -21,6 +21,8 @@ type VideoRow = {
   description: string | null;
   title_en?: string | null;
   description_en?: string | null;
+  title_ar?: string | null;
+  description_ar?: string | null;
   video_path: string;
   thumbnail_path: string;
   external_url?: string | null;
@@ -37,6 +39,8 @@ type ArticleRow = {
   content: string;
   title_en?: string | null;
   content_en?: string | null;
+  title_ar?: string | null;
+  content_ar?: string | null;
   image_path: string;
   external_url?: string | null;
   is_published: boolean;
@@ -191,6 +195,7 @@ export default function AdminPage() {
     ReturnType<NonNullable<typeof supabase>["auth"]["getSession"]>
   >["data"]["session"]>(null);
   const [loadingSession, setLoadingSession] = useState(true);
+  const [arColumnsMissing, setArColumnsMissing] = useState(false);
 
   useEffect(() => {
     let mounted = true;
@@ -204,6 +209,17 @@ export default function AdminPage() {
         mounted = false;
       };
     }
+
+    client!
+      .from("articles")
+      .select("title_ar")
+      .limit(1)
+      .then(({ error }) => {
+        if (!mounted) return;
+        if (error?.message?.includes("title_ar")) {
+          setArColumnsMissing(true);
+        }
+      });
 
     client!.auth
       .getSession()
@@ -272,6 +288,13 @@ export default function AdminPage() {
               Connexion Supabase Auth requise. Ici tu peux ajouter, éditer et
               publier les vidéos et les articles stockés dans Supabase.
             </p>
+            {arColumnsMissing && (
+              <div className="mt-4 rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-amber-100 text-sm max-w-2xl">
+                Colonnes arabes absentes en base. Exécute le SQL{" "}
+                <code className="font-mono text-xs">scripts/add-arabic-columns.sql</code>{" "}
+                dans le SQL Editor Supabase (projet melloulandpartners) pour activer FR/EN/AR.
+              </div>
+            )}
           </div>
 
           <Link
@@ -794,6 +817,8 @@ function VideoForm({
   const [description, setDescription] = useState(initial?.description ?? "");
   const [titleEn, setTitleEn] = useState(initial?.title_en ?? "");
   const [descriptionEn, setDescriptionEn] = useState(initial?.description_en ?? "");
+  const [titleAr, setTitleAr] = useState(initial?.title_ar ?? "");
+  const [descriptionAr, setDescriptionAr] = useState(initial?.description_ar ?? "");
   const [isPublished, setIsPublished] = useState(initial?.is_published ?? true);
   const [sortOrder, setSortOrder] = useState<number>(initial?.sort_order ?? 0);
   const [externalUrl, setExternalUrl] = useState(initial?.external_url ?? "");
@@ -801,6 +826,7 @@ function VideoForm({
   const [thumbFile, setThumbFile] = useState<File | null>(null);
   const [ogPreviewUrl, setOgPreviewUrl] = useState<string | null>(null);
   const [fetchingOg, setFetchingOg] = useState(false);
+  const [translating, setTranslating] = useState(false);
   const [saving, setSaving] = useState(false);
   const [savingStep, setSavingStep] = useState<
     "idle" | "thumbnail" | "video" | "db"
@@ -858,9 +884,11 @@ function VideoForm({
             const t = await transRes.json();
             if (t.titleFr) setTitle(t.titleFr);
             if (t.titleEn) setTitleEn(t.titleEn);
+            if (t.titleAr) setTitleAr(t.titleAr);
             if (t.descriptionFr) setDescription(t.descriptionFr);
             if (t.descriptionEn) setDescriptionEn(t.descriptionEn);
-            toast.success("Image, titre et description récupérés et traduits !");
+            if (t.descriptionAr) setDescriptionAr(t.descriptionAr);
+            toast.success("Image, titre et description récupérés et traduits (FR/EN/AR) !");
           } else {
             if (ogTitle) setTitle(ogTitle);
             if (ogDesc) setDescription(ogDesc);
@@ -880,6 +908,39 @@ function VideoForm({
       );
     } finally {
       setFetchingOg(false);
+    }
+  };
+
+  const translateFromFr = async () => {
+    if (!title.trim() && !description.trim()) {
+      toast.error("Renseignez d’abord le titre ou la description en français.");
+      return;
+    }
+    setTranslating(true);
+    try {
+      const transRes = await fetch("/api/translate-og", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ title, description }),
+      });
+      if (!transRes.ok) {
+        const json = await transRes.json().catch(() => ({}));
+        throw new Error(json.error ?? `Erreur ${transRes.status}`);
+      }
+      const t = await transRes.json();
+      if (t.titleFr) setTitle(t.titleFr);
+      if (t.titleEn) setTitleEn(t.titleEn);
+      if (t.titleAr) setTitleAr(t.titleAr);
+      if (t.descriptionFr) setDescription(t.descriptionFr);
+      if (t.descriptionEn) setDescriptionEn(t.descriptionEn);
+      if (t.descriptionAr) setDescriptionAr(t.descriptionAr);
+      toast.success("Traductions EN et AR générées.");
+    } catch (err) {
+      toast.error(
+        err instanceof Error ? err.message : "Traduction impossible"
+      );
+    } finally {
+      setTranslating(false);
     }
   };
 
@@ -959,6 +1020,8 @@ function VideoForm({
         description: description || null,
         title_en: titleEn || null,
         description_en: descriptionEn || null,
+        title_ar: titleAr || null,
+        description_ar: descriptionAr || null,
         video_path: nextVideoPath,
         thumbnail_path: nextThumbPath,
         external_url: externalUrl.trim() || null,
@@ -1131,6 +1194,47 @@ function VideoForm({
               onChange={(e) => setDescriptionEn(e.target.value)}
               className="w-full min-h-[80px] rounded-lg bg-navy-900/50 border border-gold-500/10 focus:border-gold-500/40 outline-none px-3 py-2 text-primary-100"
               placeholder="Description (optional)"
+            />
+          </div>
+        </div>
+
+        {/* Section Arabic */}
+        <div className="md:col-span-2 space-y-3 pt-2 border-b border-gold-500/10 pb-4">
+          <div className="flex items-center justify-between gap-3">
+            <div className="text-xs tracking-wider text-gold-400 uppercase font-medium">
+              العربية
+            </div>
+            <button
+              type="button"
+              onClick={translateFromFr}
+              disabled={translating || (!title.trim() && !description.trim())}
+              className="rounded-lg border border-blue-500/20 bg-blue-500/10 text-blue-200 px-3 py-1.5 text-xs hover:bg-blue-500/15 transition-colors disabled:opacity-50 whitespace-nowrap"
+            >
+              {translating ? "Traduction…" : "Traduire FR → EN + AR"}
+            </button>
+          </div>
+          <div className="space-y-2">
+            <label className="block text-xs tracking-wider text-primary-400 uppercase">
+              العنوان (AR)
+            </label>
+            <input
+              value={titleAr}
+              onChange={(e) => setTitleAr(e.target.value)}
+              dir="rtl"
+              className="w-full rounded-lg bg-navy-900/50 border border-gold-500/10 focus:border-gold-500/40 outline-none px-3 py-2 text-primary-100"
+              placeholder="عنوان الفيديو"
+            />
+          </div>
+          <div className="space-y-2">
+            <label className="block text-xs tracking-wider text-primary-400 uppercase">
+              الوصف (AR)
+            </label>
+            <textarea
+              value={descriptionAr}
+              onChange={(e) => setDescriptionAr(e.target.value)}
+              dir="rtl"
+              className="w-full min-h-[80px] rounded-lg bg-navy-900/50 border border-gold-500/10 focus:border-gold-500/40 outline-none px-3 py-2 text-primary-100"
+              placeholder="الوصف (اختياري)"
             />
           </div>
         </div>
@@ -1461,6 +1565,8 @@ function ArticleForm({
   const [content, setContent] = useState(initial?.content ?? "");
   const [titleEn, setTitleEn] = useState(initial?.title_en ?? "");
   const [contentEn, setContentEn] = useState(initial?.content_en ?? "");
+  const [titleAr, setTitleAr] = useState(initial?.title_ar ?? "");
+  const [contentAr, setContentAr] = useState(initial?.content_ar ?? "");
   const [slug, setSlug] = useState(initial?.slug ?? "");
   const [isPublished, setIsPublished] = useState(initial?.is_published ?? true);
   const [sortOrder, setSortOrder] = useState<number>(initial?.sort_order ?? 0);
@@ -1468,6 +1574,7 @@ function ArticleForm({
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [ogPreviewUrl, setOgPreviewUrl] = useState<string | null>(null);
   const [fetchingOg, setFetchingOg] = useState(false);
+  const [translating, setTranslating] = useState(false);
   const [saving, setSaving] = useState(false);
   const isCreate = mode === "create";
 
@@ -1531,7 +1638,8 @@ function ArticleForm({
               setTitleEn(t.titleEn);
               setSlug(slugify(t.titleEn));
             }
-            toast.success("Image et titre récupérés et traduits !");
+            if (t.titleAr) setTitleAr(t.titleAr);
+            toast.success("Image et titre récupérés et traduits (FR/EN/AR) !");
           } else {
             setTitle(ogTitle);
             setSlug(slugify(ogTitle));
@@ -1551,6 +1659,49 @@ function ArticleForm({
       );
     } finally {
       setFetchingOg(false);
+    }
+  };
+
+  const translateFromFr = async () => {
+    const hasExternal = Boolean(externalUrl.trim());
+    if (!title.trim() && (hasExternal || !content.trim())) {
+      toast.error("Renseignez d’abord le titre (et le contenu si article interne).");
+      return;
+    }
+    setTranslating(true);
+    try {
+      const transRes = await fetch("/api/translate-og", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          title,
+          description: "",
+          content: hasExternal ? "" : content,
+        }),
+      });
+      if (!transRes.ok) {
+        const json = await transRes.json().catch(() => ({}));
+        throw new Error(json.error ?? `Erreur ${transRes.status}`);
+      }
+      const t = await transRes.json();
+      if (t.titleFr) setTitle(t.titleFr);
+      if (t.titleEn) {
+        setTitleEn(t.titleEn);
+        setSlug(slugify(t.titleEn));
+      }
+      if (t.titleAr) setTitleAr(t.titleAr);
+      if (!hasExternal) {
+        if (t.contentFr) setContent(t.contentFr);
+        if (t.contentEn) setContentEn(t.contentEn);
+        if (t.contentAr) setContentAr(t.contentAr);
+      }
+      toast.success("Traductions EN et AR générées.");
+    } catch (err) {
+      toast.error(
+        err instanceof Error ? err.message : "Traduction impossible"
+      );
+    } finally {
+      setTranslating(false);
     }
   };
 
@@ -1614,6 +1765,8 @@ function ArticleForm({
         content,
         title_en: titleEn || null,
         content_en: contentEn || null,
+        title_ar: titleAr || null,
+        content_ar: contentAr || null,
         slug: finalSlug,
         image_path: nextImagePath,
         external_url: externalUrl.trim() || null,
@@ -1773,6 +1926,50 @@ function ArticleForm({
                 value={contentEn}
                 onChange={setContentEn}
                 placeholder="Write the article content in English…"
+              />
+            </div>
+          )}
+        </div>
+
+        <div className="md:col-span-2 space-y-3 pt-2 border-b border-gold-500/10 pb-4">
+          <div className="flex items-center justify-between gap-3">
+            <div className="text-xs tracking-wider text-gold-400 uppercase font-medium">
+              العربية
+            </div>
+            <button
+              type="button"
+              onClick={translateFromFr}
+              disabled={
+                translating ||
+                (!title.trim() && !(!externalUrl.trim() && content.trim()))
+              }
+              className="rounded-lg border border-blue-500/20 bg-blue-500/10 text-blue-200 px-3 py-1.5 text-xs hover:bg-blue-500/15 transition-colors disabled:opacity-50 whitespace-nowrap"
+            >
+              {translating ? "Traduction…" : "Traduire FR → EN + AR"}
+            </button>
+          </div>
+          <div className="space-y-2">
+            <label className="block text-xs tracking-wider text-primary-400 uppercase">
+              العنوان (AR)
+            </label>
+            <input
+              value={titleAr}
+              onChange={(e) => setTitleAr(e.target.value)}
+              dir="rtl"
+              className="w-full rounded-lg bg-navy-900/50 border border-gold-500/10 focus:border-gold-500/40 outline-none px-3 py-2 text-primary-100"
+              placeholder="عنوان المقال"
+            />
+          </div>
+          {!externalUrl.trim() && (
+            <div className="space-y-2">
+              <label className="block text-xs tracking-wider text-primary-400 uppercase">
+                المحتوى (AR)
+              </label>
+              <RichTextEditor
+                value={contentAr}
+                onChange={setContentAr}
+                dir="rtl"
+                placeholder="اكتب محتوى المقال بالعربية…"
               />
             </div>
           )}

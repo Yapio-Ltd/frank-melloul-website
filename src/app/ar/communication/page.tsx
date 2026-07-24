@@ -1,7 +1,8 @@
 import type { Metadata } from "next";
 import { supabase, SUPABASE_MEDIA_BUCKET } from "@/lib/supabaseClient";
 import CommunicationPageClient from "@/app/communication/CommunicationPageClient";
-import { LANGUAGE_ALTERNATES } from "@/lib/locale";
+import { LANGUAGE_ALTERNATES, pickLocalizedText } from "@/lib/locale";
+import { excerptFromHtml } from "@/lib/utils";
 
 const SITE_URL = "https://melloulandpartners.com";
 const DEFAULT_TITLE = "التواصل | Melloul & Partners";
@@ -39,32 +40,57 @@ export async function generateMetadata({
   let ogUrl = `${SITE_URL}/ar/communication`;
 
   if (videoId && supabase) {
-    const { data } = await supabase
+    let { data, error } = await supabase
       .from("videos")
-      .select("title,title_en,description,description_en,thumbnail_path")
+      .select(
+        "title,title_en,title_ar,description,description_en,description_ar,thumbnail_path"
+      )
       .eq("id", videoId)
       .eq("is_published", true)
       .single();
 
+    if (error?.message?.includes("title_ar")) {
+      const fallback = await supabase
+        .from("videos")
+        .select("title,title_en,description,description_en,thumbnail_path")
+        .eq("id", videoId)
+        .eq("is_published", true)
+        .single();
+      data = fallback.data as typeof data;
+    }
+
     if (data) {
-      ogTitle = (data.title_en ?? data.title) + " | Melloul & Partners";
-      ogDesc = data.description_en ?? data.description ?? DEFAULT_DESC;
+      ogTitle = pickLocalizedText(data, "title", "ar") + " | Melloul & Partners";
+      ogDesc = pickLocalizedText(data, "description", "ar") || DEFAULT_DESC;
       ogImage = data.thumbnail_path
         ? thumbnailUrl(data.thumbnail_path)
         : FALLBACK_IMAGE;
       ogUrl = `${SITE_URL}/ar/communication?video=${videoId}`;
     }
   } else if (articleId && supabase) {
-    const { data } = await supabase
+    let { data, error } = await supabase
       .from("articles")
-      .select("title,title_en,content,content_en,image_path")
+      .select("title,title_en,title_ar,content,content_en,content_ar,image_path")
       .eq("id", articleId)
       .eq("is_published", true)
       .single();
 
+    if (error?.message?.includes("title_ar")) {
+      const fallback = await supabase
+        .from("articles")
+        .select("title,title_en,content,content_en,image_path")
+        .eq("id", articleId)
+        .eq("is_published", true)
+        .single();
+      data = fallback.data as typeof data;
+    }
+
     if (data) {
-      ogTitle = (data.title_en ?? data.title) + " | Melloul & Partners";
-      ogDesc = (data.content_en ?? data.content ?? DEFAULT_DESC).slice(0, 160);
+      ogTitle = pickLocalizedText(data, "title", "ar") + " | Melloul & Partners";
+      ogDesc = excerptFromHtml(
+        pickLocalizedText(data, "content", "ar") || DEFAULT_DESC,
+        160
+      );
       ogImage = data.image_path
         ? thumbnailUrl(data.image_path)
         : FALLBACK_IMAGE;
@@ -123,8 +149,18 @@ async function buildSchemaAr() {
     {
       "@type": "BreadcrumbList",
       itemListElement: [
-        { "@type": "ListItem", position: 1, name: "الرئيسية", item: `${SITE_URL}/ar` },
-        { "@type": "ListItem", position: 2, name: "التواصل", item: `${SITE_URL}/ar/communication` },
+        {
+          "@type": "ListItem",
+          position: 1,
+          name: "الرئيسية",
+          item: `${SITE_URL}/ar`,
+        },
+        {
+          "@type": "ListItem",
+          position: 2,
+          name: "التواصل",
+          item: `${SITE_URL}/ar/communication`,
+        },
       ],
     },
   ];
@@ -132,31 +168,66 @@ async function buildSchemaAr() {
   if (!supabase) return { "@context": "https://schema.org", "@graph": graph };
 
   const [videosRes, articlesRes] = await Promise.all([
-    supabase
-      .from("videos")
-      .select("id,title,title_en,description,description_en,thumbnail_path,video_path,external_url,created_at,updated_at")
-      .eq("is_published", true)
-      .order("sort_order", { ascending: false })
-      .order("created_at", { ascending: false }),
-    supabase
-      .from("articles")
-      .select("id,slug,title,title_en,content,content_en,image_path,created_at,updated_at")
-      .eq("is_published", true)
-      .order("sort_order", { ascending: false })
-      .order("created_at", { ascending: false }),
+    (async () => {
+      const withAr = await supabase
+        .from("videos")
+        .select(
+          "id,title,title_en,title_ar,description,description_en,description_ar,thumbnail_path,video_path,external_url,created_at,updated_at"
+        )
+        .eq("is_published", true)
+        .order("sort_order", { ascending: false })
+        .order("created_at", { ascending: false });
+      if (withAr.error?.message?.includes("title_ar")) {
+        return supabase
+          .from("videos")
+          .select(
+            "id,title,title_en,description,description_en,thumbnail_path,video_path,external_url,created_at,updated_at"
+          )
+          .eq("is_published", true)
+          .order("sort_order", { ascending: false })
+          .order("created_at", { ascending: false });
+      }
+      return withAr;
+    })(),
+    (async () => {
+      const withAr = await supabase
+        .from("articles")
+        .select(
+          "id,slug,title,title_en,title_ar,content,content_en,content_ar,image_path,created_at,updated_at"
+        )
+        .eq("is_published", true)
+        .order("sort_order", { ascending: false })
+        .order("created_at", { ascending: false });
+      if (withAr.error?.message?.includes("title_ar")) {
+        return supabase
+          .from("articles")
+          .select(
+            "id,slug,title,title_en,content,content_en,image_path,created_at,updated_at"
+          )
+          .eq("is_published", true)
+          .order("sort_order", { ascending: false })
+          .order("created_at", { ascending: false });
+      }
+      return withAr;
+    })(),
   ]);
 
   const videos = videosRes.data ?? [];
   const articles = articlesRes.data ?? [];
 
   videos.forEach((v) => {
-    const thumb = v.thumbnail_path ? thumbnailUrl(v.thumbnail_path) : FALLBACK_IMAGE;
-    const contentUrl = v.external_url || (v.video_path ? videoFileUrl(v.video_path) : "");
+    const thumb = v.thumbnail_path
+      ? thumbnailUrl(v.thumbnail_path)
+      : FALLBACK_IMAGE;
+    const contentUrl =
+      v.external_url || (v.video_path ? videoFileUrl(v.video_path) : "");
+    const name = pickLocalizedText(v, "title", "ar");
+    const description = pickLocalizedText(v, "description", "ar") || name;
 
     graph.push({
       "@type": "VideoObject",
-      name: v.title_en ?? v.title,
-      description: (v.description_en ?? v.description) || (v.title_en ?? v.title),
+      name,
+      description,
       thumbnailUrl: thumb,
       uploadDate: v.created_at,
       inLanguage: "ar",
@@ -165,7 +236,10 @@ async function buildSchemaAr() {
       publisher: {
         "@type": "Organization",
         name: "Melloul & Partners",
-        logo: { "@type": "ImageObject", url: `${SITE_URL}/only_gold_logo.webp` },
+        logo: {
+          "@type": "ImageObject",
+          url: `${SITE_URL}/only_gold_logo.webp`,
+        },
       },
     });
   });
@@ -179,7 +253,7 @@ async function buildSchemaAr() {
         "@type": "ListItem",
         position: i + 1,
         url: `${SITE_URL}/ar/communication/articles/${a.slug ?? a.id}`,
-        name: a.title_en ?? a.title,
+        name: pickLocalizedText(a, "title", "ar"),
       })),
     });
   }

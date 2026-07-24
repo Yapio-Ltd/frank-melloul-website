@@ -82,6 +82,7 @@ type RelatedArticleQueryRow = {
   slug: string | null;
   title: string;
   title_en: string | null;
+  title_ar: string | null;
   image_path: string;
   created_at: string;
 };
@@ -137,48 +138,79 @@ export default function ArticlePageClient({
     }
 
     const filterCol = isId ? "id" : "slug";
+    const db = supabase;
 
-    supabase
-      .from("articles")
-      .select("id,slug,title,content,title_en,content_en,image_path,created_at")
-      .eq(filterCol, identifier)
-      .eq("is_published", true)
-      .single()
-      .then(({ data, error }) => {
-        setLoading(false);
-        if (error || !data) {
-          setNotFound(true);
-          return;
-        }
-        setArticle({
-          id: data.id,
-          slug: data.slug ?? null,
-          title: pickLocalizedText(data, "title", locale),
-          content: pickLocalizedText(data, "content", locale),
-          image_path: data.image_path,
-          created_at: data.created_at,
-        });
-      });
+    const loadArticle = async () => {
+      let res = await db
+        .from("articles")
+        .select(
+          "id,slug,title,content,title_en,content_en,title_ar,content_ar,image_path,created_at"
+        )
+        .eq(filterCol, identifier)
+        .eq("is_published", true)
+        .single();
 
-    supabase
-      .from("articles")
-      .select("id,slug,title,title_en,image_path,created_at")
-      .eq("is_published", true)
-      .neq(filterCol, identifier)
-      .order("created_at", { ascending: false })
-      .limit(4)
-      .then(({ data }) => {
-        if (!data) return;
-        setRelatedArticles(
-          (data as RelatedArticleQueryRow[]).map((a) => ({
-            id: a.id,
-            slug: a.slug ?? null,
-            title: pickLocalizedText(a, "title", locale),
-            image_path: a.image_path,
-            created_at: a.created_at,
-          }))
-        );
+      if (res.error?.message?.includes("title_ar")) {
+        res = (await db
+          .from("articles")
+          .select(
+            "id,slug,title,content,title_en,content_en,image_path,created_at"
+          )
+          .eq(filterCol, identifier)
+          .eq("is_published", true)
+          .single()) as typeof res;
+      }
+
+      setLoading(false);
+      if (res.error || !res.data) {
+        setNotFound(true);
+        return;
+      }
+      const data = res.data;
+      setArticle({
+        id: data.id,
+        slug: data.slug ?? null,
+        title: pickLocalizedText(data, "title", locale),
+        content: pickLocalizedText(data, "content", locale),
+        image_path: data.image_path,
+        created_at: data.created_at,
       });
+    };
+
+    void loadArticle();
+
+    const loadRelated = async () => {
+      let res = await db
+        .from("articles")
+        .select("id,slug,title,title_en,title_ar,image_path,created_at")
+        .eq("is_published", true)
+        .neq(filterCol, identifier)
+        .order("created_at", { ascending: false })
+        .limit(4);
+
+      if (res.error?.message?.includes("title_ar")) {
+        res = (await db
+          .from("articles")
+          .select("id,slug,title,title_en,image_path,created_at")
+          .eq("is_published", true)
+          .neq(filterCol, identifier)
+          .order("created_at", { ascending: false })
+          .limit(4)) as typeof res;
+      }
+
+      if (!res.data) return;
+      setRelatedArticles(
+        (res.data as RelatedArticleQueryRow[]).map((a) => ({
+          id: a.id,
+          slug: a.slug ?? null,
+          title: pickLocalizedText(a, "title", locale),
+          image_path: a.image_path,
+          created_at: a.created_at,
+        }))
+      );
+    };
+
+    void loadRelated();
   }, [identifier, locale, isId]);
 
   return (

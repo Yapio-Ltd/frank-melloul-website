@@ -12,6 +12,7 @@ interface RichTextEditorProps {
   value: string;
   onChange: (html: string) => void;
   placeholder?: string;
+  dir?: "ltr" | "rtl";
 }
 
 /* ── Icônes SVG légères ── */
@@ -79,7 +80,12 @@ function Divider() {
 
 /* ─────────────────────────────────────────── */
 
-export default function RichTextEditor({ value, onChange, placeholder }: RichTextEditorProps) {
+export default function RichTextEditor({
+  value,
+  onChange,
+  placeholder,
+  dir = "ltr",
+}: RichTextEditorProps) {
   const editor = useEditor({
     extensions: [
       StarterKit.configure({
@@ -102,6 +108,7 @@ export default function RichTextEditor({ value, onChange, placeholder }: RichTex
     editorProps: {
       attributes: {
         class: "outline-none min-h-[220px] text-primary-100 leading-relaxed focus:outline-none",
+        dir,
       },
     },
     onUpdate({ editor }) {
@@ -110,7 +117,13 @@ export default function RichTextEditor({ value, onChange, placeholder }: RichTex
     },
   });
 
-  /* Sync external value changes (e.g. when editing an existing article) */
+  useEffect(() => {
+    if (!editor) return;
+    const attrs = editor.view.dom.getAttribute("dir");
+    if (attrs !== dir) {
+      editor.view.dom.setAttribute("dir", dir);
+    }
+  }, [editor, dir]);
   useEffect(() => {
     if (!editor) return;
     const current = editor.isEmpty ? "" : editor.getHTML();
