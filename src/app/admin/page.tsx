@@ -56,6 +56,84 @@ function sanitizeFilename(name: string) {
     .replace(/[^a-zA-Z0-9._-]/g, "");
 }
 
+type LangFlags = { fr: boolean; en: boolean; ar: boolean };
+
+function inferLangFlags(
+  isCreate: boolean,
+  titleFr?: string | null,
+  titleEn?: string | null,
+  titleAr?: string | null
+): LangFlags {
+  if (isCreate) return { fr: true, en: true, ar: true };
+  const fr = Boolean(titleFr?.trim());
+  const en = Boolean(titleEn?.trim());
+  const ar = Boolean(titleAr?.trim());
+  if (!fr && !en && !ar) return { fr: true, en: true, ar: true };
+  return { fr, en, ar };
+}
+
+function countEnabledLangs(langs: LangFlags): number {
+  return (langs.fr ? 1 : 0) + (langs.en ? 1 : 0) + (langs.ar ? 1 : 0);
+}
+
+function LanguageCheckboxes({
+  langs,
+  onChange,
+}: {
+  langs: LangFlags;
+  onChange: (next: LangFlags) => void;
+}) {
+  const toggle = (key: keyof LangFlags) => {
+    const next = { ...langs, [key]: !langs[key] };
+    if (countEnabledLangs(next) === 0) {
+      toast.error("Sélectionnez au moins une langue.");
+      return;
+    }
+    onChange(next);
+  };
+
+  return (
+    <div className="md:col-span-2 space-y-2 pt-2 border-b border-gold-500/10 pb-4">
+      <div className="text-xs tracking-wider text-gold-400 uppercase font-medium">
+        Langues publiées
+      </div>
+      <p className="text-primary-500 text-xs">
+        Cochez uniquement les langues souhaitées. Avec une seule langue, le texte
+        n’est pas traduit automatiquement.
+      </p>
+      <div className="flex flex-wrap gap-4 text-sm text-primary-200">
+        <label className="inline-flex items-center gap-2">
+          <input
+            type="checkbox"
+            checked={langs.fr}
+            onChange={() => toggle("fr")}
+            className="accent-gold-400"
+          />
+          Français
+        </label>
+        <label className="inline-flex items-center gap-2">
+          <input
+            type="checkbox"
+            checked={langs.en}
+            onChange={() => toggle("en")}
+            className="accent-gold-400"
+          />
+          English
+        </label>
+        <label className="inline-flex items-center gap-2">
+          <input
+            type="checkbox"
+            checked={langs.ar}
+            onChange={() => toggle("ar")}
+            className="accent-gold-400"
+          />
+          العربية
+        </label>
+      </div>
+    </div>
+  );
+}
+
 function getShareUrl(videoId: string) {
   const origin = typeof window !== "undefined" ? window.location.origin : "";
   return `${origin}/communication?video=${videoId}`;
@@ -819,6 +897,9 @@ function VideoForm({
   const [descriptionEn, setDescriptionEn] = useState(initial?.description_en ?? "");
   const [titleAr, setTitleAr] = useState(initial?.title_ar ?? "");
   const [descriptionAr, setDescriptionAr] = useState(initial?.description_ar ?? "");
+  const [langs, setLangs] = useState<LangFlags>(() =>
+    inferLangFlags(mode === "create", initial?.title, initial?.title_en, initial?.title_ar)
+  );
   const [isPublished, setIsPublished] = useState(initial?.is_published ?? true);
   const [sortOrder, setSortOrder] = useState<number>(initial?.sort_order ?? 0);
   const [externalUrl, setExternalUrl] = useState(initial?.external_url ?? "");
@@ -834,6 +915,42 @@ function VideoForm({
 
   const isCreate = mode === "create";
   const isExternalLink = Boolean(externalUrl.trim());
+  const enabledLangCount = countEnabledLangs(langs);
+
+  const applyVideoTranslations = (t: {
+    titleFr?: string;
+    titleEn?: string;
+    titleAr?: string;
+    descriptionFr?: string;
+    descriptionEn?: string;
+    descriptionAr?: string;
+  }) => {
+    if (langs.fr) {
+      if (t.titleFr) setTitle(t.titleFr);
+      if (t.descriptionFr) setDescription(t.descriptionFr);
+    }
+    if (langs.en) {
+      if (t.titleEn) setTitleEn(t.titleEn);
+      if (t.descriptionEn) setDescriptionEn(t.descriptionEn);
+    }
+    if (langs.ar) {
+      if (t.titleAr) setTitleAr(t.titleAr);
+      if (t.descriptionAr) setDescriptionAr(t.descriptionAr);
+    }
+  };
+
+  const applyVideoRawText = (ogTitle: string, ogDesc: string) => {
+    if (langs.fr) {
+      if (ogTitle) setTitle(ogTitle);
+      if (ogDesc) setDescription(ogDesc);
+    } else if (langs.en) {
+      if (ogTitle) setTitleEn(ogTitle);
+      if (ogDesc) setDescriptionEn(ogDesc);
+    } else if (langs.ar) {
+      if (ogTitle) setTitleAr(ogTitle);
+      if (ogDesc) setDescriptionAr(ogDesc);
+    }
+  };
 
   const fetchOgImage = async () => {
     if (!externalUrl.trim()) {
@@ -850,7 +967,6 @@ function VideoForm({
         throw new Error(json.error ?? `Erreur ${res.status}`);
       }
 
-      // Read title & description from headers
       const rawTitle = res.headers.get("X-OG-Title");
       const rawDesc = res.headers.get("X-OG-Description");
       const ogTitle = rawTitle ? decodeURIComponent(rawTitle) : "";
@@ -872,35 +988,33 @@ function VideoForm({
       setThumbFile(file);
       setOgPreviewUrl(preview);
 
-      // Translate & inject into FR + EN fields
-      if (ogTitle || ogDesc) {
-        try {
-          const transRes = await fetch("/api/translate-og", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ title: ogTitle, description: ogDesc }),
-          });
-          if (transRes.ok) {
-            const t = await transRes.json();
-            if (t.titleFr) setTitle(t.titleFr);
-            if (t.titleEn) setTitleEn(t.titleEn);
-            if (t.titleAr) setTitleAr(t.titleAr);
-            if (t.descriptionFr) setDescription(t.descriptionFr);
-            if (t.descriptionEn) setDescriptionEn(t.descriptionEn);
-            if (t.descriptionAr) setDescriptionAr(t.descriptionAr);
-            toast.success("Image, titre et description récupérés et traduits (FR/EN/AR) !");
-          } else {
-            if (ogTitle) setTitle(ogTitle);
-            if (ogDesc) setDescription(ogDesc);
-            toast.success("Image récupérée (traduction indisponible).");
-          }
-        } catch {
-          if (ogTitle) setTitle(ogTitle);
-          if (ogDesc) setDescription(ogDesc);
+      if (!ogTitle && !ogDesc) {
+        toast.success("Image récupérée !");
+        return;
+      }
+
+      if (enabledLangCount <= 1) {
+        applyVideoRawText(ogTitle, ogDesc);
+        toast.success("Image et texte récupérés (sans traduction).");
+        return;
+      }
+
+      try {
+        const transRes = await fetch("/api/translate-og", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ title: ogTitle, description: ogDesc }),
+        });
+        if (transRes.ok) {
+          applyVideoTranslations(await transRes.json());
+          toast.success("Image, titre et description récupérés et traduits !");
+        } else {
+          applyVideoRawText(ogTitle, ogDesc);
           toast.success("Image récupérée (traduction indisponible).");
         }
-      } else {
-        toast.success("Image récupérée !");
+      } catch {
+        applyVideoRawText(ogTitle, ogDesc);
+        toast.success("Image récupérée (traduction indisponible).");
       }
     } catch (err) {
       toast.error(
@@ -912,8 +1026,22 @@ function VideoForm({
   };
 
   const translateFromFr = async () => {
-    if (!title.trim() && !description.trim()) {
-      toast.error("Renseignez d’abord le titre ou la description en français.");
+    if (enabledLangCount < 2) {
+      toast.error("Sélectionnez au moins deux langues pour traduire.");
+      return;
+    }
+    const sourceTitle = langs.fr
+      ? title
+      : langs.en
+        ? titleEn
+        : titleAr;
+    const sourceDesc = langs.fr
+      ? description
+      : langs.en
+        ? descriptionEn
+        : descriptionAr;
+    if (!sourceTitle.trim() && !sourceDesc.trim()) {
+      toast.error("Renseignez d’abord le titre ou la description.");
       return;
     }
     setTranslating(true);
@@ -921,20 +1049,14 @@ function VideoForm({
       const transRes = await fetch("/api/translate-og", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ title, description }),
+        body: JSON.stringify({ title: sourceTitle, description: sourceDesc }),
       });
       if (!transRes.ok) {
         const json = await transRes.json().catch(() => ({}));
         throw new Error(json.error ?? `Erreur ${transRes.status}`);
       }
-      const t = await transRes.json();
-      if (t.titleFr) setTitle(t.titleFr);
-      if (t.titleEn) setTitleEn(t.titleEn);
-      if (t.titleAr) setTitleAr(t.titleAr);
-      if (t.descriptionFr) setDescription(t.descriptionFr);
-      if (t.descriptionEn) setDescriptionEn(t.descriptionEn);
-      if (t.descriptionAr) setDescriptionAr(t.descriptionAr);
-      toast.success("Traductions EN et AR générées.");
+      applyVideoTranslations(await transRes.json());
+      toast.success("Traductions générées pour les langues sélectionnées.");
     } catch (err) {
       toast.error(
         err instanceof Error ? err.message : "Traduction impossible"
@@ -946,6 +1068,23 @@ function VideoForm({
 
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    if (enabledLangCount === 0) {
+      toast.error("Sélectionnez au moins une langue.");
+      return;
+    }
+    if (langs.fr && !title.trim()) {
+      toast.error("Le titre français est requis.");
+      return;
+    }
+    if (langs.en && !titleEn.trim()) {
+      toast.error("Le titre anglais est requis.");
+      return;
+    }
+    if (langs.ar && !titleAr.trim()) {
+      toast.error("Le titre arabe est requis.");
+      return;
+    }
 
     if (isCreate && !isExternalLink && (!videoFile || !thumbFile)) {
       toast.error("Vidéo et photo sont requis pour créer.");
@@ -1016,12 +1155,12 @@ function VideoForm({
       }
 
       const payload = {
-        title,
-        description: description || null,
-        title_en: titleEn || null,
-        description_en: descriptionEn || null,
-        title_ar: titleAr || null,
-        description_ar: descriptionAr || null,
+        title: langs.fr ? title : "",
+        description: langs.fr ? description || null : null,
+        title_en: langs.en ? titleEn || null : null,
+        description_en: langs.en ? descriptionEn || null : null,
+        title_ar: langs.ar ? titleAr || null : null,
+        description_ar: langs.ar ? descriptionAr || null : null,
         video_path: nextVideoPath,
         thumbnail_path: nextThumbPath,
         external_url: externalUrl.trim() || null,
@@ -1096,6 +1235,8 @@ function VideoForm({
       </div>
 
       <form onSubmit={onSubmit} className="grid md:grid-cols-2 gap-4">
+        <LanguageCheckboxes langs={langs} onChange={setLangs} />
+
         {/* Lien externe — en haut */}
         <div className="md:col-span-2 space-y-3 pt-2 border-b border-gold-500/10 pb-4">
           <div className="text-xs tracking-wider text-blue-400 uppercase font-medium">
@@ -1139,105 +1280,113 @@ function VideoForm({
           )}
         </div>
 
-        {/* Section Français */}
-        <div className="md:col-span-2 space-y-3 pt-2 border-b border-gold-500/10 pb-4">
-          <div className="text-xs tracking-wider text-gold-400 uppercase font-medium">
-            Français
-          </div>
-          <div className="space-y-2">
-            <label className="block text-xs tracking-wider text-primary-400 uppercase">
-              Titre (FR)
-            </label>
-            <input
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              required
-              className="w-full rounded-lg bg-navy-900/50 border border-gold-500/10 focus:border-gold-500/40 outline-none px-3 py-2 text-primary-100"
-              placeholder="Titre de la vidéo"
-            />
-          </div>
-          <div className="space-y-2">
-            <label className="block text-xs tracking-wider text-primary-400 uppercase">
-              Description (FR)
-            </label>
-            <textarea
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              className="w-full min-h-[80px] rounded-lg bg-navy-900/50 border border-gold-500/10 focus:border-gold-500/40 outline-none px-3 py-2 text-primary-100"
-              placeholder="Description (optionnel)"
-            />
-          </div>
-        </div>
-
-        {/* Section English */}
-        <div className="md:col-span-2 space-y-3 pt-2 border-b border-gold-500/10 pb-4">
-          <div className="text-xs tracking-wider text-gold-400 uppercase font-medium">
-            English
-          </div>
-          <div className="space-y-2">
-            <label className="block text-xs tracking-wider text-primary-400 uppercase">
-              Title (EN)
-            </label>
-            <input
-              value={titleEn}
-              onChange={(e) => setTitleEn(e.target.value)}
-              className="w-full rounded-lg bg-navy-900/50 border border-gold-500/10 focus:border-gold-500/40 outline-none px-3 py-2 text-primary-100"
-              placeholder="Video title"
-            />
-          </div>
-          <div className="space-y-2">
-            <label className="block text-xs tracking-wider text-primary-400 uppercase">
-              Description (EN)
-            </label>
-            <textarea
-              value={descriptionEn}
-              onChange={(e) => setDescriptionEn(e.target.value)}
-              className="w-full min-h-[80px] rounded-lg bg-navy-900/50 border border-gold-500/10 focus:border-gold-500/40 outline-none px-3 py-2 text-primary-100"
-              placeholder="Description (optional)"
-            />
-          </div>
-        </div>
-
-        {/* Section Arabic */}
-        <div className="md:col-span-2 space-y-3 pt-2 border-b border-gold-500/10 pb-4">
-          <div className="flex items-center justify-between gap-3">
-            <div className="text-xs tracking-wider text-gold-400 uppercase font-medium">
-              العربية
-            </div>
+        {enabledLangCount >= 2 && (
+          <div className="md:col-span-2 flex justify-end">
             <button
               type="button"
               onClick={translateFromFr}
-              disabled={translating || (!title.trim() && !description.trim())}
+              disabled={translating}
               className="rounded-lg border border-blue-500/20 bg-blue-500/10 text-blue-200 px-3 py-1.5 text-xs hover:bg-blue-500/15 transition-colors disabled:opacity-50 whitespace-nowrap"
             >
-              {translating ? "Traduction…" : "Traduire FR → EN + AR"}
+              {translating ? "Traduction…" : "Traduire vers les langues sélectionnées"}
             </button>
           </div>
-          <div className="space-y-2">
-            <label className="block text-xs tracking-wider text-primary-400 uppercase">
-              العنوان (AR)
-            </label>
-            <input
-              value={titleAr}
-              onChange={(e) => setTitleAr(e.target.value)}
-              dir="rtl"
-              className="w-full rounded-lg bg-navy-900/50 border border-gold-500/10 focus:border-gold-500/40 outline-none px-3 py-2 text-primary-100"
-              placeholder="عنوان الفيديو"
-            />
+        )}
+
+        {/* Section Français */}
+        {langs.fr && (
+          <div className="md:col-span-2 space-y-3 pt-2 border-b border-gold-500/10 pb-4">
+            <div className="text-xs tracking-wider text-gold-400 uppercase font-medium">
+              Français
+            </div>
+            <div className="space-y-2">
+              <label className="block text-xs tracking-wider text-primary-400 uppercase">
+                Titre (FR)
+              </label>
+              <input
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+                className="w-full rounded-lg bg-navy-900/50 border border-gold-500/10 focus:border-gold-500/40 outline-none px-3 py-2 text-primary-100"
+                placeholder="Titre de la vidéo"
+              />
+            </div>
+            <div className="space-y-2">
+              <label className="block text-xs tracking-wider text-primary-400 uppercase">
+                Description (FR)
+              </label>
+              <textarea
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                className="w-full min-h-[80px] rounded-lg bg-navy-900/50 border border-gold-500/10 focus:border-gold-500/40 outline-none px-3 py-2 text-primary-100"
+                placeholder="Description (optionnel)"
+              />
+            </div>
           </div>
-          <div className="space-y-2">
-            <label className="block text-xs tracking-wider text-primary-400 uppercase">
-              الوصف (AR)
-            </label>
-            <textarea
-              value={descriptionAr}
-              onChange={(e) => setDescriptionAr(e.target.value)}
-              dir="rtl"
-              className="w-full min-h-[80px] rounded-lg bg-navy-900/50 border border-gold-500/10 focus:border-gold-500/40 outline-none px-3 py-2 text-primary-100"
-              placeholder="الوصف (اختياري)"
-            />
+        )}
+
+        {/* Section English */}
+        {langs.en && (
+          <div className="md:col-span-2 space-y-3 pt-2 border-b border-gold-500/10 pb-4">
+            <div className="text-xs tracking-wider text-gold-400 uppercase font-medium">
+              English
+            </div>
+            <div className="space-y-2">
+              <label className="block text-xs tracking-wider text-primary-400 uppercase">
+                Title (EN)
+              </label>
+              <input
+                value={titleEn}
+                onChange={(e) => setTitleEn(e.target.value)}
+                className="w-full rounded-lg bg-navy-900/50 border border-gold-500/10 focus:border-gold-500/40 outline-none px-3 py-2 text-primary-100"
+                placeholder="Video title"
+              />
+            </div>
+            <div className="space-y-2">
+              <label className="block text-xs tracking-wider text-primary-400 uppercase">
+                Description (EN)
+              </label>
+              <textarea
+                value={descriptionEn}
+                onChange={(e) => setDescriptionEn(e.target.value)}
+                className="w-full min-h-[80px] rounded-lg bg-navy-900/50 border border-gold-500/10 focus:border-gold-500/40 outline-none px-3 py-2 text-primary-100"
+                placeholder="Description (optional)"
+              />
+            </div>
           </div>
-        </div>
+        )}
+
+        {/* Section Arabic */}
+        {langs.ar && (
+          <div className="md:col-span-2 space-y-3 pt-2 border-b border-gold-500/10 pb-4">
+            <div className="text-xs tracking-wider text-gold-400 uppercase font-medium">
+              العربية
+            </div>
+            <div className="space-y-2">
+              <label className="block text-xs tracking-wider text-primary-400 uppercase">
+                العنوان (AR)
+              </label>
+              <input
+                value={titleAr}
+                onChange={(e) => setTitleAr(e.target.value)}
+                dir="rtl"
+                className="w-full rounded-lg bg-navy-900/50 border border-gold-500/10 focus:border-gold-500/40 outline-none px-3 py-2 text-primary-100"
+                placeholder="عنوان الفيديو"
+              />
+            </div>
+            <div className="space-y-2">
+              <label className="block text-xs tracking-wider text-primary-400 uppercase">
+                الوصف (AR)
+              </label>
+              <textarea
+                value={descriptionAr}
+                onChange={(e) => setDescriptionAr(e.target.value)}
+                dir="rtl"
+                className="w-full min-h-[80px] rounded-lg bg-navy-900/50 border border-gold-500/10 focus:border-gold-500/40 outline-none px-3 py-2 text-primary-100"
+                placeholder="الوصف (اختياري)"
+              />
+            </div>
+          </div>
+        )}
 
         <div className="space-y-2">
           <label className="block text-xs tracking-wider text-primary-400 uppercase">
@@ -1567,6 +1716,9 @@ function ArticleForm({
   const [contentEn, setContentEn] = useState(initial?.content_en ?? "");
   const [titleAr, setTitleAr] = useState(initial?.title_ar ?? "");
   const [contentAr, setContentAr] = useState(initial?.content_ar ?? "");
+  const [langs, setLangs] = useState<LangFlags>(() =>
+    inferLangFlags(mode === "create", initial?.title, initial?.title_en, initial?.title_ar)
+  );
   const [slug, setSlug] = useState(initial?.slug ?? "");
   const [isPublished, setIsPublished] = useState(initial?.is_published ?? true);
   const [sortOrder, setSortOrder] = useState<number>(initial?.sort_order ?? 0);
@@ -1577,15 +1729,59 @@ function ArticleForm({
   const [translating, setTranslating] = useState(false);
   const [saving, setSaving] = useState(false);
   const isCreate = mode === "create";
+  const enabledLangCount = countEnabledLangs(langs);
 
   const handleTitleEnChange = (value: string) => {
     setTitleEn(value);
-    setSlug(slugify(value || title));
+    setSlug(slugify(value || title || titleAr));
   };
 
   const handleTitleChange = (value: string) => {
     setTitle(value);
-    if (!titleEn) setSlug(slugify(value));
+    if (!titleEn) setSlug(slugify(value || titleAr));
+  };
+
+  const handleTitleArChange = (value: string) => {
+    setTitleAr(value);
+    if (!titleEn && !title) setSlug(slugify(value));
+  };
+
+  const applyArticleTranslations = (t: {
+    titleFr?: string;
+    titleEn?: string;
+    titleAr?: string;
+    contentFr?: string;
+    contentEn?: string;
+    contentAr?: string;
+  }) => {
+    if (langs.fr) {
+      if (t.titleFr) setTitle(t.titleFr);
+      if (t.contentFr) setContent(t.contentFr);
+    }
+    if (langs.en) {
+      if (t.titleEn) {
+        setTitleEn(t.titleEn);
+        setSlug(slugify(t.titleEn));
+      }
+      if (t.contentEn) setContentEn(t.contentEn);
+    }
+    if (langs.ar) {
+      if (t.titleAr) setTitleAr(t.titleAr);
+      if (t.contentAr) setContentAr(t.contentAr);
+    }
+  };
+
+  const applyArticleRawTitle = (ogTitle: string) => {
+    if (langs.fr) {
+      setTitle(ogTitle);
+      if (!langs.en) setSlug(slugify(ogTitle));
+    } else if (langs.en) {
+      setTitleEn(ogTitle);
+      setSlug(slugify(ogTitle));
+    } else if (langs.ar) {
+      setTitleAr(ogTitle);
+      setSlug(slugify(ogTitle));
+    }
   };
 
   const fetchOgImage = async () => {
@@ -1603,7 +1799,6 @@ function ArticleForm({
         throw new Error(json.error ?? `Erreur ${res.status}`);
       }
 
-      // Read title & description from headers
       const rawTitle = res.headers.get("X-OG-Title");
       const ogTitle = rawTitle ? decodeURIComponent(rawTitle) : "";
 
@@ -1623,35 +1818,33 @@ function ArticleForm({
       setImageFile(file);
       setOgPreviewUrl(preview);
 
-      // Translate title only (no description for articles)
-      if (ogTitle) {
-        try {
-          const transRes = await fetch("/api/translate-og", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ title: ogTitle, description: "" }),
-          });
-          if (transRes.ok) {
-            const t = await transRes.json();
-            if (t.titleFr) setTitle(t.titleFr);
-            if (t.titleEn) {
-              setTitleEn(t.titleEn);
-              setSlug(slugify(t.titleEn));
-            }
-            if (t.titleAr) setTitleAr(t.titleAr);
-            toast.success("Image et titre récupérés et traduits (FR/EN/AR) !");
-          } else {
-            setTitle(ogTitle);
-            setSlug(slugify(ogTitle));
-            toast.success("Image récupérée (traduction indisponible).");
-          }
-        } catch {
-          setTitle(ogTitle);
-          setSlug(slugify(ogTitle));
+      if (!ogTitle) {
+        toast.success("Image récupérée !");
+        return;
+      }
+
+      if (enabledLangCount <= 1) {
+        applyArticleRawTitle(ogTitle);
+        toast.success("Image et titre récupérés (sans traduction).");
+        return;
+      }
+
+      try {
+        const transRes = await fetch("/api/translate-og", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ title: ogTitle, description: "" }),
+        });
+        if (transRes.ok) {
+          applyArticleTranslations(await transRes.json());
+          toast.success("Image et titre récupérés et traduits !");
+        } else {
+          applyArticleRawTitle(ogTitle);
           toast.success("Image récupérée (traduction indisponible).");
         }
-      } else {
-        toast.success("Image récupérée !");
+      } catch {
+        applyArticleRawTitle(ogTitle);
+        toast.success("Image récupérée (traduction indisponible).");
       }
     } catch (err) {
       toast.error(
@@ -1662,9 +1855,25 @@ function ArticleForm({
     }
   };
 
-  const translateFromFr = async () => {
+  const translateSelectedLangs = async () => {
+    if (enabledLangCount < 2) {
+      toast.error("Sélectionnez au moins deux langues pour traduire.");
+      return;
+    }
     const hasExternal = Boolean(externalUrl.trim());
-    if (!title.trim() && (hasExternal || !content.trim())) {
+    const sourceTitle = langs.fr
+      ? title
+      : langs.en
+        ? titleEn
+        : titleAr;
+    const sourceContent = hasExternal
+      ? ""
+      : langs.fr
+        ? content
+        : langs.en
+          ? contentEn
+          : contentAr;
+    if (!sourceTitle.trim() && !sourceContent.trim()) {
       toast.error("Renseignez d’abord le titre (et le contenu si article interne).");
       return;
     }
@@ -1674,28 +1883,17 @@ function ArticleForm({
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          title,
+          title: sourceTitle,
           description: "",
-          content: hasExternal ? "" : content,
+          content: sourceContent,
         }),
       });
       if (!transRes.ok) {
         const json = await transRes.json().catch(() => ({}));
         throw new Error(json.error ?? `Erreur ${transRes.status}`);
       }
-      const t = await transRes.json();
-      if (t.titleFr) setTitle(t.titleFr);
-      if (t.titleEn) {
-        setTitleEn(t.titleEn);
-        setSlug(slugify(t.titleEn));
-      }
-      if (t.titleAr) setTitleAr(t.titleAr);
-      if (!hasExternal) {
-        if (t.contentFr) setContent(t.contentFr);
-        if (t.contentEn) setContentEn(t.contentEn);
-        if (t.contentAr) setContentAr(t.contentAr);
-      }
-      toast.success("Traductions EN et AR générées.");
+      applyArticleTranslations(await transRes.json());
+      toast.success("Traductions générées pour les langues sélectionnées.");
     } catch (err) {
       toast.error(
         err instanceof Error ? err.message : "Traduction impossible"
@@ -1708,12 +1906,47 @@ function ArticleForm({
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!externalUrl.trim() && !content.trim()) {
-      toast.error("Le contenu est requis si aucun lien externe n'est renseigné.");
+    if (enabledLangCount === 0) {
+      toast.error("Sélectionnez au moins une langue.");
+      return;
+    }
+    if (langs.fr && !title.trim()) {
+      toast.error("Le titre français est requis.");
+      return;
+    }
+    if (langs.en && !titleEn.trim()) {
+      toast.error("Le titre anglais est requis.");
+      return;
+    }
+    if (langs.ar && !titleAr.trim()) {
+      toast.error("Le titre arabe est requis.");
       return;
     }
 
-    const baseSlug = slug.trim() || slugify(titleEn || title);
+    const hasExternal = Boolean(externalUrl.trim());
+    if (!hasExternal) {
+      if (langs.fr && !content.trim()) {
+        toast.error("Le contenu français est requis.");
+        return;
+      }
+      if (langs.en && !contentEn.trim()) {
+        toast.error("Le contenu anglais est requis.");
+        return;
+      }
+      if (langs.ar && !contentAr.trim()) {
+        toast.error("Le contenu arabe est requis.");
+        return;
+      }
+    }
+
+    const baseSlug =
+      slug.trim() ||
+      slugify(
+        (langs.en && titleEn) ||
+          (langs.fr && title) ||
+          (langs.ar && titleAr) ||
+          ""
+      );
     if (!baseSlug) {
       toast.error("Veuillez renseigner au moins le titre pour générer l'URL.");
       return;
@@ -1761,12 +1994,12 @@ function ArticleForm({
       }
 
       const payload = {
-        title,
-        content,
-        title_en: titleEn || null,
-        content_en: contentEn || null,
-        title_ar: titleAr || null,
-        content_ar: contentAr || null,
+        title: langs.fr ? title : "",
+        content: langs.fr ? content : "",
+        title_en: langs.en ? titleEn || null : null,
+        content_en: langs.en ? contentEn || null : null,
+        title_ar: langs.ar ? titleAr || null : null,
+        content_ar: langs.ar ? contentAr || null : null,
         slug: finalSlug,
         image_path: nextImagePath,
         external_url: externalUrl.trim() || null,
@@ -1828,6 +2061,8 @@ function ArticleForm({
       </div>
 
       <form onSubmit={onSubmit} className="grid md:grid-cols-2 gap-4">
+        <LanguageCheckboxes langs={langs} onChange={setLangs} />
+
         {/* Lien externe — en haut */}
         <div className="md:col-span-2 space-y-3 pt-2 border-b border-gold-500/10 pb-4">
           <div className="text-xs tracking-wider text-blue-400 uppercase font-medium">
@@ -1871,109 +2106,114 @@ function ArticleForm({
           )}
         </div>
 
+        {enabledLangCount >= 2 && (
+          <div className="md:col-span-2 flex justify-end">
+            <button
+              type="button"
+              onClick={translateSelectedLangs}
+              disabled={translating}
+              className="rounded-lg border border-blue-500/20 bg-blue-500/10 text-blue-200 px-3 py-1.5 text-xs hover:bg-blue-500/15 transition-colors disabled:opacity-50 whitespace-nowrap"
+            >
+              {translating ? "Traduction…" : "Traduire vers les langues sélectionnées"}
+            </button>
+          </div>
+        )}
+
         {/* Section Français */}
-        <div className="md:col-span-2 space-y-3 pt-2 border-b border-gold-500/10 pb-4">
-          <div className="text-xs tracking-wider text-gold-400 uppercase font-medium">
-            Français
-          </div>
-          <div className="space-y-2">
-            <label className="block text-xs tracking-wider text-primary-400 uppercase">
-              Titre (FR)
-            </label>
-            <input
-              value={title}
-              onChange={(e) => handleTitleChange(e.target.value)}
-              required
-              className="w-full rounded-lg bg-navy-900/50 border border-gold-500/10 focus:border-gold-500/40 outline-none px-3 py-2 text-primary-100"
-              placeholder="Titre de l’article"
-            />
-          </div>
-          {!externalUrl.trim() && (
+        {langs.fr && (
+          <div className="md:col-span-2 space-y-3 pt-2 border-b border-gold-500/10 pb-4">
+            <div className="text-xs tracking-wider text-gold-400 uppercase font-medium">
+              Français
+            </div>
             <div className="space-y-2">
               <label className="block text-xs tracking-wider text-primary-400 uppercase">
-                Contenu (FR)
+                Titre (FR)
               </label>
-              <RichTextEditor
-                value={content}
-                onChange={setContent}
-                placeholder="Rédigez le contenu de l’article en français…"
+              <input
+                value={title}
+                onChange={(e) => handleTitleChange(e.target.value)}
+                className="w-full rounded-lg bg-navy-900/50 border border-gold-500/10 focus:border-gold-500/40 outline-none px-3 py-2 text-primary-100"
+                placeholder="Titre de l’article"
               />
             </div>
-          )}
-        </div>
+            {!externalUrl.trim() && (
+              <div className="space-y-2">
+                <label className="block text-xs tracking-wider text-primary-400 uppercase">
+                  Contenu (FR)
+                </label>
+                <RichTextEditor
+                  value={content}
+                  onChange={setContent}
+                  placeholder="Rédigez le contenu de l’article en français…"
+                />
+              </div>
+            )}
+          </div>
+        )}
 
-        <div className="md:col-span-2 space-y-3 pt-2 border-b border-gold-500/10 pb-4">
-          <div className="text-xs tracking-wider text-gold-400 uppercase font-medium">
-            English
-          </div>
-          <div className="space-y-2">
-            <label className="block text-xs tracking-wider text-primary-400 uppercase">
-              Title (EN)
-            </label>
-            <input
-              value={titleEn}
-              onChange={(e) => handleTitleEnChange(e.target.value)}
-              className="w-full rounded-lg bg-navy-900/50 border border-gold-500/10 focus:border-gold-500/40 outline-none px-3 py-2 text-primary-100"
-              placeholder="Article title"
-            />
-          </div>
-          {!externalUrl.trim() && (
+        {langs.en && (
+          <div className="md:col-span-2 space-y-3 pt-2 border-b border-gold-500/10 pb-4">
+            <div className="text-xs tracking-wider text-gold-400 uppercase font-medium">
+              English
+            </div>
             <div className="space-y-2">
               <label className="block text-xs tracking-wider text-primary-400 uppercase">
-                Content (EN)
+                Title (EN)
               </label>
-              <RichTextEditor
-                value={contentEn}
-                onChange={setContentEn}
-                placeholder="Write the article content in English…"
+              <input
+                value={titleEn}
+                onChange={(e) => handleTitleEnChange(e.target.value)}
+                className="w-full rounded-lg bg-navy-900/50 border border-gold-500/10 focus:border-gold-500/40 outline-none px-3 py-2 text-primary-100"
+                placeholder="Article title"
               />
             </div>
-          )}
-        </div>
+            {!externalUrl.trim() && (
+              <div className="space-y-2">
+                <label className="block text-xs tracking-wider text-primary-400 uppercase">
+                  Content (EN)
+                </label>
+                <RichTextEditor
+                  value={contentEn}
+                  onChange={setContentEn}
+                  placeholder="Write the article content in English…"
+                />
+              </div>
+            )}
+          </div>
+        )}
 
-        <div className="md:col-span-2 space-y-3 pt-2 border-b border-gold-500/10 pb-4">
-          <div className="flex items-center justify-between gap-3">
+        {langs.ar && (
+          <div className="md:col-span-2 space-y-3 pt-2 border-b border-gold-500/10 pb-4">
             <div className="text-xs tracking-wider text-gold-400 uppercase font-medium">
               العربية
             </div>
-            <button
-              type="button"
-              onClick={translateFromFr}
-              disabled={
-                translating ||
-                (!title.trim() && !(!externalUrl.trim() && content.trim()))
-              }
-              className="rounded-lg border border-blue-500/20 bg-blue-500/10 text-blue-200 px-3 py-1.5 text-xs hover:bg-blue-500/15 transition-colors disabled:opacity-50 whitespace-nowrap"
-            >
-              {translating ? "Traduction…" : "Traduire FR → EN + AR"}
-            </button>
-          </div>
-          <div className="space-y-2">
-            <label className="block text-xs tracking-wider text-primary-400 uppercase">
-              العنوان (AR)
-            </label>
-            <input
-              value={titleAr}
-              onChange={(e) => setTitleAr(e.target.value)}
-              dir="rtl"
-              className="w-full rounded-lg bg-navy-900/50 border border-gold-500/10 focus:border-gold-500/40 outline-none px-3 py-2 text-primary-100"
-              placeholder="عنوان المقال"
-            />
-          </div>
-          {!externalUrl.trim() && (
             <div className="space-y-2">
               <label className="block text-xs tracking-wider text-primary-400 uppercase">
-                المحتوى (AR)
+                العنوان (AR)
               </label>
-              <RichTextEditor
-                value={contentAr}
-                onChange={setContentAr}
+              <input
+                value={titleAr}
+                onChange={(e) => handleTitleArChange(e.target.value)}
                 dir="rtl"
-                placeholder="اكتب محتوى المقال بالعربية…"
+                className="w-full rounded-lg bg-navy-900/50 border border-gold-500/10 focus:border-gold-500/40 outline-none px-3 py-2 text-primary-100"
+                placeholder="عنوان المقال"
               />
             </div>
-          )}
-        </div>
+            {!externalUrl.trim() && (
+              <div className="space-y-2">
+                <label className="block text-xs tracking-wider text-primary-400 uppercase">
+                  المحتوى (AR)
+                </label>
+                <RichTextEditor
+                  value={contentAr}
+                  onChange={setContentAr}
+                  dir="rtl"
+                  placeholder="اكتب محتوى المقال بالعربية…"
+                />
+              </div>
+            )}
+          </div>
+        )}
 
         {/* Slug auto-généré — caché de l'interface */}
         <input type="hidden" value={slug} readOnly />
