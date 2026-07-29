@@ -79,11 +79,14 @@ function countEnabledLangs(langs: LangFlags): number {
 function LanguageCheckboxes({
   langs,
   onChange,
+  arDisabled = false,
 }: {
   langs: LangFlags;
   onChange: (next: LangFlags) => void;
+  arDisabled?: boolean;
 }) {
   const toggle = (key: keyof LangFlags) => {
+    if (key === "ar" && arDisabled) return;
     const next = { ...langs, [key]: !langs[key] };
     if (countEnabledLangs(next) === 0) {
       toast.error("Sélectionnez au moins une langue.");
@@ -120,18 +123,57 @@ function LanguageCheckboxes({
           />
           English
         </label>
-        <label className="inline-flex items-center gap-2">
+        <label
+          className={[
+            "inline-flex items-center gap-2",
+            arDisabled ? "opacity-50 cursor-not-allowed" : "",
+          ].join(" ")}
+          title={
+            arDisabled
+              ? "Colonnes arabes absentes en base — exécute scripts/add-arabic-columns.sql"
+              : undefined
+          }
+        >
           <input
             type="checkbox"
             checked={langs.ar}
             onChange={() => toggle("ar")}
+            disabled={arDisabled}
             className="accent-gold-400"
           />
           العربية
         </label>
       </div>
+      {arDisabled && (
+        <p className="text-amber-200/90 text-xs">
+          L’arabe est désactivé tant que les colonnes DB manquent (
+          <code className="font-mono">scripts/add-arabic-columns.sql</code>).
+        </p>
+      )}
     </div>
   );
+}
+
+function formatDbSaveError(err: unknown): string {
+  const message =
+    err instanceof Error
+      ? err.message
+      : typeof err === "object" &&
+          err &&
+          "message" in err &&
+          typeof (err as { message: unknown }).message === "string"
+        ? (err as { message: string }).message
+        : "Erreur inconnue pendant l'opération.";
+
+  if (
+    message.includes("PGRST204") ||
+    message.includes("title_ar") ||
+    message.includes("content_ar") ||
+    message.includes("description_ar")
+  ) {
+    return "Colonnes arabes manquantes en base. Exécute scripts/add-arabic-columns.sql dans le SQL Editor Supabase, puis réessaie.";
+  }
+  return message;
 }
 
 function getShareUrl(videoId: string) {
@@ -368,9 +410,19 @@ export default function AdminPage() {
             </p>
             {arColumnsMissing && (
               <div className="mt-4 rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-amber-100 text-sm max-w-2xl">
-                Colonnes arabes absentes en base. Exécute le SQL{" "}
+                Colonnes arabes absentes en base : la publication FR/EN fonctionne,
+                mais l’arabe est désactivé. Exécute{" "}
                 <code className="font-mono text-xs">scripts/add-arabic-columns.sql</code>{" "}
-                dans le SQL Editor Supabase (projet melloulandpartners) pour activer FR/EN/AR.
+                dans le{" "}
+                <a
+                  href="https://supabase.com/dashboard/project/rhucqyogszkxrngnouyv/sql/new"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="underline hover:text-amber-50"
+                >
+                  SQL Editor Supabase
+                </a>{" "}
+                pour activer l’arabe.
               </div>
             )}
           </div>
@@ -387,8 +439,8 @@ export default function AdminPage() {
           <LoginPanel />
         ) : (
           <div className="space-y-8">
-            <ArticlesDashboard />
-            <VideosDashboard />
+            <ArticlesDashboard arColumnsMissing={arColumnsMissing} />
+            <VideosDashboard arColumnsMissing={arColumnsMissing} />
           </div>
         )}
       </div>
@@ -463,7 +515,11 @@ function LoginPanel() {
   );
 }
 
-function VideosDashboard() {
+function VideosDashboard({
+  arColumnsMissing,
+}: {
+  arColumnsMissing: boolean;
+}) {
   const client = supabase!;
   const [videos, setVideos] = useState<VideoRow[]>([]);
   const [loading, setLoading] = useState(true);
@@ -571,6 +627,7 @@ function VideosDashboard() {
         <VideoForm
           mode={creating ? "create" : "edit"}
           initial={editing ?? undefined}
+          arColumnsMissing={arColumnsMissing}
           onClose={() => {
             setCreating(false);
             setEditing(null);
@@ -882,11 +939,13 @@ function AdminVideoModal({
 function VideoForm({
   mode,
   initial,
+  arColumnsMissing,
   onClose,
   onSaved,
 }: {
   mode: "create" | "edit";
   initial?: VideoRow;
+  arColumnsMissing: boolean;
   onClose: () => void;
   onSaved: () => void;
 }) {
@@ -897,9 +956,19 @@ function VideoForm({
   const [descriptionEn, setDescriptionEn] = useState(initial?.description_en ?? "");
   const [titleAr, setTitleAr] = useState(initial?.title_ar ?? "");
   const [descriptionAr, setDescriptionAr] = useState(initial?.description_ar ?? "");
-  const [langs, setLangs] = useState<LangFlags>(() =>
-    inferLangFlags(mode === "create", initial?.title, initial?.title_en, initial?.title_ar)
-  );
+  const [langs, setLangs] = useState<LangFlags>(() => {
+    const inferred = inferLangFlags(
+      mode === "create",
+      initial?.title,
+      initial?.title_en,
+      arColumnsMissing ? null : initial?.title_ar
+    );
+    if (arColumnsMissing) inferred.ar = false;
+    if (mode === "create" && arColumnsMissing) {
+      return { fr: true, en: true, ar: false };
+    }
+    return inferred;
+  });
   const [isPublished, setIsPublished] = useState(initial?.is_published ?? true);
   const [sortOrder, setSortOrder] = useState<number>(initial?.sort_order ?? 0);
   const [externalUrl, setExternalUrl] = useState(initial?.external_url ?? "");
@@ -916,6 +985,16 @@ function VideoForm({
   const isCreate = mode === "create";
   const isExternalLink = Boolean(externalUrl.trim());
   const enabledLangCount = countEnabledLangs(langs);
+
+  useEffect(() => {
+    if (!arColumnsMissing) return;
+    setLangs((prev) => {
+      if (!prev.ar) return prev;
+      const next = { ...prev, ar: false };
+      if (countEnabledLangs(next) === 0) return { fr: true, en: false, ar: false };
+      return next;
+    });
+  }, [arColumnsMissing]);
 
   const applyVideoTranslations = (t: {
     titleFr?: string;
@@ -1154,19 +1233,21 @@ function VideoForm({
         nextVideoPath = uploadedVideoPath;
       }
 
-      const payload = {
+      const payload: Record<string, unknown> = {
         title: langs.fr ? title : "",
         description: langs.fr ? description || null : null,
         title_en: langs.en ? titleEn || null : null,
         description_en: langs.en ? descriptionEn || null : null,
-        title_ar: langs.ar ? titleAr || null : null,
-        description_ar: langs.ar ? descriptionAr || null : null,
         video_path: nextVideoPath,
         thumbnail_path: nextThumbPath,
         external_url: externalUrl.trim() || null,
         is_published: isPublished,
         sort_order: sortOrder,
       };
+      if (!arColumnsMissing) {
+        payload.title_ar = langs.ar ? titleAr || null : null;
+        payload.description_ar = langs.ar ? descriptionAr || null : null;
+      }
       if (isCreate) {
         setSavingStep("db");
         const { error } = await client.from("videos").insert({ id, ...payload });
@@ -1184,9 +1265,7 @@ function VideoForm({
 
       onSaved();
     } catch (err) {
-      const message =
-        err instanceof Error ? err.message : "Erreur inconnue pendant l'opération.";
-      toast.error(message);
+      toast.error(formatDbSaveError(err));
     } finally {
       setSaving(false);
       setSavingStep("idle");
@@ -1235,7 +1314,11 @@ function VideoForm({
       </div>
 
       <form onSubmit={onSubmit} className="grid md:grid-cols-2 gap-4">
-        <LanguageCheckboxes langs={langs} onChange={setLangs} />
+        <LanguageCheckboxes
+          langs={langs}
+          onChange={setLangs}
+          arDisabled={arColumnsMissing}
+        />
 
         {/* Lien externe — en haut */}
         <div className="md:col-span-2 space-y-3 pt-2 border-b border-gold-500/10 pb-4">
@@ -1467,7 +1550,11 @@ function VideoForm({
   );
 }
 
-function ArticlesDashboard() {
+function ArticlesDashboard({
+  arColumnsMissing,
+}: {
+  arColumnsMissing: boolean;
+}) {
   const client = supabase!;
   const [articles, setArticles] = useState<ArticleRow[]>([]);
   const [loading, setLoading] = useState(true);
@@ -1556,6 +1643,7 @@ function ArticlesDashboard() {
         <ArticleForm
           mode={creating ? "create" : "edit"}
           initial={editing ?? undefined}
+          arColumnsMissing={arColumnsMissing}
           onClose={() => {
             setCreating(false);
             setEditing(null);
@@ -1701,11 +1789,13 @@ function ArticlesDashboard() {
 function ArticleForm({
   mode,
   initial,
+  arColumnsMissing,
   onClose,
   onSaved,
 }: {
   mode: "create" | "edit";
   initial?: ArticleRow;
+  arColumnsMissing: boolean;
   onClose: () => void;
   onSaved: () => void;
 }) {
@@ -1716,9 +1806,19 @@ function ArticleForm({
   const [contentEn, setContentEn] = useState(initial?.content_en ?? "");
   const [titleAr, setTitleAr] = useState(initial?.title_ar ?? "");
   const [contentAr, setContentAr] = useState(initial?.content_ar ?? "");
-  const [langs, setLangs] = useState<LangFlags>(() =>
-    inferLangFlags(mode === "create", initial?.title, initial?.title_en, initial?.title_ar)
-  );
+  const [langs, setLangs] = useState<LangFlags>(() => {
+    if (mode === "create" && arColumnsMissing) {
+      return { fr: true, en: true, ar: false };
+    }
+    const inferred = inferLangFlags(
+      mode === "create",
+      initial?.title,
+      initial?.title_en,
+      arColumnsMissing ? null : initial?.title_ar
+    );
+    if (arColumnsMissing) inferred.ar = false;
+    return inferred;
+  });
   const [slug, setSlug] = useState(initial?.slug ?? "");
   const [isPublished, setIsPublished] = useState(initial?.is_published ?? true);
   const [sortOrder, setSortOrder] = useState<number>(initial?.sort_order ?? 0);
@@ -1730,6 +1830,16 @@ function ArticleForm({
   const [saving, setSaving] = useState(false);
   const isCreate = mode === "create";
   const enabledLangCount = countEnabledLangs(langs);
+
+  useEffect(() => {
+    if (!arColumnsMissing) return;
+    setLangs((prev) => {
+      if (!prev.ar) return prev;
+      const next = { ...prev, ar: false };
+      if (countEnabledLangs(next) === 0) return { fr: true, en: false, ar: false };
+      return next;
+    });
+  }, [arColumnsMissing]);
 
   const handleTitleEnChange = (value: string) => {
     setTitleEn(value);
@@ -1993,19 +2103,21 @@ function ArticleForm({
         nextImagePath = path;
       }
 
-      const payload = {
+      const payload: Record<string, unknown> = {
         title: langs.fr ? title : "",
         content: langs.fr ? content : "",
         title_en: langs.en ? titleEn || null : null,
         content_en: langs.en ? contentEn || null : null,
-        title_ar: langs.ar ? titleAr || null : null,
-        content_ar: langs.ar ? contentAr || null : null,
         slug: finalSlug,
         image_path: nextImagePath,
         external_url: externalUrl.trim() || null,
         is_published: isPublished,
         sort_order: sortOrder,
       };
+      if (!arColumnsMissing) {
+        payload.title_ar = langs.ar ? titleAr || null : null;
+        payload.content_ar = langs.ar ? contentAr || null : null;
+      }
 
       if (isCreate) {
         const { error } = await client.from("articles").insert({ id, ...payload });
@@ -2022,9 +2134,7 @@ function ArticleForm({
 
       onSaved();
     } catch (err) {
-      const message =
-        err instanceof Error ? err.message : "Erreur inconnue pendant l'opération.";
-      toast.error(message);
+      toast.error(formatDbSaveError(err));
     } finally {
       setSaving(false);
     }
@@ -2061,7 +2171,11 @@ function ArticleForm({
       </div>
 
       <form onSubmit={onSubmit} className="grid md:grid-cols-2 gap-4">
-        <LanguageCheckboxes langs={langs} onChange={setLangs} />
+        <LanguageCheckboxes
+          langs={langs}
+          onChange={setLangs}
+          arDisabled={arColumnsMissing}
+        />
 
         {/* Lien externe — en haut */}
         <div className="md:col-span-2 space-y-3 pt-2 border-b border-gold-500/10 pb-4">
