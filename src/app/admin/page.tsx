@@ -1843,6 +1843,7 @@ function ArticleForm({
   const [fetchingOg, setFetchingOg] = useState(false);
   const [translating, setTranslating] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [confirmNoImageOpen, setConfirmNoImageOpen] = useState(false);
   const isCreate = mode === "create";
   const enabledLangCount = countEnabledLangs(langs);
 
@@ -2075,15 +2076,17 @@ function ArticleForm({
       return;
     }
 
-    if (isCreate && !imageFile) {
-      toast.error(
-        externalUrl.trim()
-          ? "Cliquez sur « Récupérer l'image » pour obtenir l'image du lien externe."
-          : "L'image est requise pour créer."
-      );
+    const hasImage = Boolean(imageFile) || Boolean(initial?.image_path);
+    if (!hasImage) {
+      setConfirmNoImageOpen(true);
       return;
     }
 
+    await saveArticle(baseSlug);
+  };
+
+  const saveArticle = async (baseSlug: string) => {
+    setConfirmNoImageOpen(false);
     setSaving(true);
     const id = initial?.id ?? crypto.randomUUID();
     let nextImagePath = initial?.image_path ?? "";
@@ -2153,6 +2156,21 @@ function ArticleForm({
     }
   };
 
+  const confirmPublishWithoutImage = () => {
+    const sourceTitle =
+      (langs.en && titleEn.trim()) ||
+      (langs.fr && title.trim()) ||
+      (langs.ar && titleAr.trim()) ||
+      "";
+    const baseSlug = slug.trim() || slugify(sourceTitle);
+    if (!baseSlug) {
+      setConfirmNoImageOpen(false);
+      toast.error("Veuillez renseigner au moins le titre pour générer l'URL.");
+      return;
+    }
+    void saveArticle(baseSlug);
+  };
+
   return (
     <div className="relative rounded-2xl border border-gold-500/10 bg-navy-950/60 backdrop-blur p-6 overflow-hidden">
       {saving ? (
@@ -2170,7 +2188,7 @@ function ArticleForm({
           </h3>
           <p className="text-primary-500 text-xs mt-1">
             {isCreate
-              ? "Upload de l'image puis création en base."
+              ? "Création en base — l’image est recommandée mais optionnelle."
               : "Tu peux modifier les champs et remplacer l'image."}
           </p>
         </div>
@@ -2371,7 +2389,7 @@ function ArticleForm({
 
         <div className="md:col-span-2 space-y-2">
           <label className="block text-xs tracking-wider text-primary-400 uppercase">
-            Image {isCreate ? "(requise — ou récupérée via le lien)" : "(optionnelle)"}
+            Image (optionnelle — ou récupérée via le lien)
           </label>
           <input
             type="file"
@@ -2406,6 +2424,49 @@ function ArticleForm({
           </button>
         </div>
       </form>
+
+      {confirmNoImageOpen ? (
+        <div
+          className="fixed inset-0 z-[70] bg-black/70 backdrop-blur-sm flex items-center justify-center p-6"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="confirm-no-image-title"
+          onMouseDown={(e) => {
+            if (e.target === e.currentTarget && !saving) setConfirmNoImageOpen(false);
+          }}
+        >
+          <div className="w-full max-w-md rounded-2xl border border-gold-500/15 bg-navy-950/95 p-6 shadow-xl">
+            <h4
+              id="confirm-no-image-title"
+              className="text-primary-100 font-medium text-lg"
+            >
+              Publier sans image ?
+            </h4>
+            <p className="text-primary-400 text-sm mt-2 leading-relaxed">
+              Êtes-vous sûr de publier sans image ? L’article pourra être créé, mais
+              l’affichage sera moins attractif sans visuel.
+            </p>
+            <div className="mt-6 flex items-center justify-end gap-2">
+              <button
+                type="button"
+                disabled={saving}
+                onClick={() => setConfirmNoImageOpen(false)}
+                className="rounded-lg border border-gold-500/10 bg-navy-950/30 text-primary-300 px-4 py-2 text-sm hover:border-gold-500/25 hover:text-gold-200 transition-colors disabled:opacity-60"
+              >
+                Annuler
+              </button>
+              <button
+                type="button"
+                disabled={saving}
+                onClick={confirmPublishWithoutImage}
+                className="rounded-lg bg-gold-500 text-navy-950 font-medium px-4 py-2 text-sm hover:bg-gold-400 transition-colors disabled:opacity-60"
+              >
+                {saving ? "Enregistrement…" : "Oui, publier sans image"}
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }
