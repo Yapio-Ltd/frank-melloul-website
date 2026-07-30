@@ -189,7 +189,10 @@ function shareVideo(videoId: string) {
 }
 
 function slugify(text: string): string {
-  return text
+  const trimmed = text.trim();
+  if (!trimmed) return "";
+
+  const latin = trimmed
     .toLowerCase()
     .normalize("NFD")
     .replace(/[\u0300-\u036f]/g, "")
@@ -197,6 +200,17 @@ function slugify(text: string): string {
     .trim()
     .replace(/\s+/g, "-")
     .replace(/-+/g, "-");
+  if (latin) return latin;
+
+  // Preserve letters/numbers from any script (e.g. Arabic)
+  const unicode = trimmed
+    .replace(/[^\p{L}\p{N}\s-]+/gu, "")
+    .trim()
+    .replace(/\s+/g, "-")
+    .replace(/-+/g, "-");
+  if (unicode) return unicode;
+
+  return `article-${Date.now().toString(36)}`;
 }
 
 async function buildUniqueArticleSlug(
@@ -2049,14 +2063,12 @@ function ArticleForm({
       }
     }
 
-    const baseSlug =
-      slug.trim() ||
-      slugify(
-        (langs.en && titleEn) ||
-          (langs.fr && title) ||
-          (langs.ar && titleAr) ||
-          ""
-      );
+    const sourceTitle =
+      (langs.en && titleEn.trim()) ||
+      (langs.fr && title.trim()) ||
+      (langs.ar && titleAr.trim()) ||
+      "";
+    const baseSlug = slug.trim() || slugify(sourceTitle);
     if (!baseSlug) {
       toast.error("Veuillez renseigner au moins le titre pour générer l'URL.");
       return;

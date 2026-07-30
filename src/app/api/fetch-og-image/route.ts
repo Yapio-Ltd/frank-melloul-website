@@ -42,6 +42,69 @@ async function fetchWithUaCascade(
   return { lastStatus };
 }
 
+function isYouTubeUrl(parsed: URL): boolean {
+  const host = parsed.hostname.replace(/^www\./, "").toLowerCase();
+  return (
+    host === "youtube.com" ||
+    host === "m.youtube.com" ||
+    host === "music.youtube.com" ||
+    host === "youtu.be" ||
+    host.endsWith(".youtube.com")
+  );
+}
+
+function imageResponse(
+  imageBuffer: ArrayBuffer,
+  contentType: string,
+  ogTitle: string,
+  ogDescription: string
+) {
+  return new NextResponse(imageBuffer, {
+    headers: {
+      "Content-Type": contentType,
+      "Cache-Control": "no-store",
+      "X-OG-Title": encodeURIComponent(ogTitle),
+      "X-OG-Description": encodeURIComponent(ogDescription),
+      "Access-Control-Expose-Headers": "X-OG-Title, X-OG-Description",
+    },
+  });
+}
+
+async function fetchYouTubeViaOEmbed(pageUrl: string) {
+  const oembedUrl = `https://www.youtube.com/oembed?url=${encodeURIComponent(pageUrl)}&format=json`;
+  const oembedRes = await fetch(oembedUrl, {
+    headers: { Accept: "application/json" },
+    signal: AbortSignal.timeout(10000),
+  });
+
+  if (!oembedRes.ok) {
+    return null;
+  }
+
+  const data = (await oembedRes.json()) as {
+    title?: string;
+    thumbnail_url?: string;
+  };
+
+  const title = data.title?.trim() ?? "";
+  const thumbnailUrl = data.thumbnail_url?.trim() ?? "";
+  if (!thumbnailUrl) {
+    return null;
+  }
+
+  const imgRes = await fetch(thumbnailUrl, {
+    signal: AbortSignal.timeout(10000),
+  });
+  if (!imgRes.ok) {
+    return null;
+  }
+
+  const contentType = imgRes.headers.get("content-type") || "image/jpeg";
+  const imageBuffer = await imgRes.arrayBuffer();
+
+  return imageResponse(imageBuffer, contentType, title, "");
+}
+
 export async function GET(request: NextRequest) {
   const url = request.nextUrl.searchParams.get("url");
 
@@ -61,6 +124,13 @@ export async function GET(request: NextRequest) {
   }
 
   try {
+    // YouTube: prefer oEmbed to avoid HTML scrape rate-limits (429)
+    if (isYouTubeUrl(parsed)) {
+      const yt = await fetchYouTubeViaOEmbed(url);
+      if (yt) return yt;
+      // fall through to HTML cascade if oEmbed fails
+    }
+
     const profiles = buildHeaderProfiles(parsed.origin);
     const pageResult = await fetchWithUaCascade(url, profiles);
 
@@ -74,7 +144,6 @@ export async function GET(request: NextRequest) {
     const { response: pageRes, headers: successHeaders } = pageResult;
     const html = await pageRes.text();
 
-    // Helper to extract a meta tag content
     const getMeta = (patterns: RegExp[]) => {
       for (const re of patterns) {
         const m = html.match(re);
@@ -83,7 +152,6 @@ export async function GET(request: NextRequest) {
       return "";
     };
 
-    // og:title / twitter:title / <title>
     const ogTitle =
       getMeta([
         /<meta[^>]+property=["']og:title["'][^>]+content=["']([^"']+)["']/i,
@@ -92,7 +160,6 @@ export async function GET(request: NextRequest) {
         /<meta[^>]+content=["']([^"']+)["'][^>]+name=["']twitter:title["']/i,
       ]) || (html.match(/<title[^>]*>([^<]+)<\/title>/i)?.[1]?.trim() ?? "");
 
-    // og:description / twitter:description
     const ogDescription = getMeta([
       /<meta[^>]+property=["']og:description["'][^>]+content=["']([^"']+)["']/i,
       /<meta[^>]+content=["']([^"']+)["'][^>]+property=["']og:description["']/i,
@@ -102,7 +169,6 @@ export async function GET(request: NextRequest) {
       /<meta[^>]+content=["']([^"']+)["'][^>]+name=["']twitter:description["']/i,
     ]);
 
-    // Try og:image first, then twitter:image
     const ogImageMatch =
       html.match(
         /<meta[^>]+property=["']og:image["'][^>]+content=["']([^"']+)["']/i
@@ -126,14 +192,12 @@ export async function GET(request: NextRequest) {
 
     let imageUrl = ogImageMatch[1];
 
-    // Resolve relative URLs
     if (imageUrl.startsWith("//")) {
       imageUrl = `https:${imageUrl}`;
     } else if (imageUrl.startsWith("/")) {
       imageUrl = `${parsed.origin}${imageUrl}`;
     }
 
-    // Reuse the UA profile that succeeded for the page
     const imgRes = await fetch(imageUrl, {
       headers: successHeaders,
       signal: AbortSignal.timeout(10000),
@@ -149,16 +213,7 @@ export async function GET(request: NextRequest) {
     const contentType = imgRes.headers.get("content-type") || "image/jpeg";
     const imageBuffer = await imgRes.arrayBuffer();
 
-    return new NextResponse(imageBuffer, {
-      headers: {
-        "Content-Type": contentType,
-        "Cache-Control": "no-store",
-        // Pass title & description back to the client via response headers
-        "X-OG-Title": encodeURIComponent(ogTitle),
-        "X-OG-Description": encodeURIComponent(ogDescription),
-        "Access-Control-Expose-Headers": "X-OG-Title, X-OG-Description",
-      },
-    });
+    return imageResponse(imageBuffer, contentType, ogTitle, ogDescription);
   } catch (err) {
     return NextResponse.json(
       { error: err instanceof Error ? err.message : "Erreur inconnue" },
