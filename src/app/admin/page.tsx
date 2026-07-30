@@ -202,9 +202,10 @@ function slugify(text: string): string {
     .replace(/-+/g, "-");
   if (latin) return latin;
 
-  // Preserve letters/numbers from any script (e.g. Arabic)
+  // Preserve non-Latin scripts (e.g. Arabic) without Unicode regex flags
+  // (TS default target rejects \p{L} / the `u` flag).
   const unicode = trimmed
-    .replace(/[^\p{L}\p{N}\s-]+/gu, "")
+    .replace(/[!"#$%&'()*+,./:;<=>?@[\\\]^_`{|}~]+/g, "")
     .trim()
     .replace(/\s+/g, "-")
     .replace(/-+/g, "-");
