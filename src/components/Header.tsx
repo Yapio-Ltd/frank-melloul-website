@@ -120,6 +120,7 @@ export default function Header() {
                   width={120}
                   height={120}
                   priority
+                  unoptimized
                   className="object-contain"
                 />
               </motion.div>

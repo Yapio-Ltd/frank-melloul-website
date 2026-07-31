@@ -576,6 +576,7 @@ function VideoCard({
           fill
           sizes="(max-width: 768px) 100vw, 33vw"
           className="object-cover transition-transform duration-500 group-hover:scale-105"
+          unoptimized
         />
         {isExternal && (
           <div className="absolute top-2 right-2 bg-black/60 rounded-md px-2 py-1 flex items-center gap-1">
@@ -914,6 +915,7 @@ function ArticleCard({
         sizes="(max-width: 768px) 100vw, 33vw"
         className="object-cover transition-transform duration-500 group-hover:scale-105"
         loading="lazy"
+        unoptimized
       />
       {isExternal && (
         <div className="absolute top-2 right-2 bg-black/60 rounded-md px-2 py-1 flex items-center gap-1">

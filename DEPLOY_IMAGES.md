@@ -50,9 +50,12 @@ Idempotent : les fichiers déjà en `.webp` côté Storage sont ignorés.
 
 Depuis `/admin`, articles et miniatures vidéo passent par `/api/upload-media` :
 
-- Redimensionnement (1920 px / 1280 px)
-- Conversion WebP qualité 80
+- Runtime Node.js + `sharp` (redimensionnement + WebP qualité 80)
+- Limite 15 Mo, formats JPG / PNG / WebP / GIF
 - Upload Storage via JWT admin
+- Vérif locale : `npm run test:images`
+
+Les fichiers vidéo (`.mp4`) ne sont pas convertis.
 
 ## Affichage public
 

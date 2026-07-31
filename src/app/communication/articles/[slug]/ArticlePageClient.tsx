@@ -242,6 +242,7 @@ export default function ArticlePageClient({
                 fill
                 sizes="100vw"
                 priority
+                unoptimized
                 className="object-cover object-center"
               />
               <div className="absolute inset-0 bg-gradient-to-b from-black/20 via-transparent to-navy-950" />
@@ -369,6 +370,7 @@ export default function ArticlePageClient({
                           alt="Frank Melloul"
                           width={48}
                           height={48}
+                          unoptimized
                           className="rounded-full object-cover shrink-0 ring-2 ring-gold-500/30"
                         />
                         <div>
@@ -422,6 +424,7 @@ export default function ArticlePageClient({
                                   alt={rel.title}
                                   fill
                                   sizes="80px"
+                                  unoptimized
                                   className="object-cover group-hover:scale-105 transition-transform duration-300"
                                 />
                               </div>

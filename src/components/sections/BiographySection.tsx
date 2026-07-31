@@ -62,6 +62,7 @@ export default function BiographySection() {
                 sizes="(max-width: 1024px) 100vw, 40vw"
                 className="object-cover object-center"
                 priority
+                unoptimized
               />
 
               {/* Subtle overlay for depth */}

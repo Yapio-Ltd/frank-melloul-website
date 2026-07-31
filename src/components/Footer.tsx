@@ -53,6 +53,7 @@ export default function Footer() {
               alt="Melloul & Partners"
               width={180}
               height={180}
+              unoptimized
               className="object-contain"
             />
           </motion.div>

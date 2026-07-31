@@ -51,6 +51,7 @@ export default function LoadingScreen() {
                 width={250}
                 height={250}
                 priority
+                unoptimized
                 className="object-contain"
                 onLoad={() => setIsLogoLoaded(true)}
               />

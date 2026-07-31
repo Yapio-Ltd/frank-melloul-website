@@ -6,13 +6,13 @@ const supabaseHostname = supabaseUrl
 
 const nextConfig = {
   reactStrictMode: true,
-  
-  // Optimize images
+
+  // Optimize images — WebP only (AVIF encoding OOMs on 512 MiB Render)
   images: {
-    formats: ['image/avif', 'image/webp'],
+    formats: ['image/webp'],
     deviceSizes: [640, 750, 828, 1080, 1200],
     imageSizes: [16, 32, 48, 64, 96, 128, 256],
-    minimumCacheTTL: 60,
+    minimumCacheTTL: 2678400,
     remotePatterns: supabaseHostname
       ? [
           {
@@ -23,7 +23,7 @@ const nextConfig = {
         ]
       : [],
   },
-  
+
   // Compiler optimizations
   compiler: {
     removeConsole: process.env.NODE_ENV === 'production',
@@ -32,6 +32,8 @@ const nextConfig = {
   experimental: {
     // Helps reduce client bundle size for heavy libs
     optimizePackageImports: ["framer-motion", "@studio-freight/lenis"],
+    // Ensure sharp (upload WebP) stays as native Node module on Render
+    serverComponentsExternalPackages: ["sharp"],
   },
 };
 
