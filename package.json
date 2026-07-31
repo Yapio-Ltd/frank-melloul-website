@@ -8,6 +8,7 @@
     "start": "next start",
     "lint": "next lint",
     "migrate:images": "tsx --env-file=.env scripts/migrate-images-to-webp.ts",
+    "optimize:images": "tsx scripts/optimize-public-images.ts",
     "perf:measure": "node scripts/perf-measure.mjs"
   },
   "dependencies": {

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Image from "next/image";
 import { motion, AnimatePresence } from "framer-motion";
 
 const MIN_DISPLAY_MS = 1500;
@@ -8,12 +9,6 @@ const MIN_DISPLAY_MS = 1500;
 export default function LoadingScreen() {
   const [isLoading, setIsLoading] = useState(true);
   const [isLogoLoaded, setIsLogoLoaded] = useState(false);
-
-  useEffect(() => {
-    const img = new window.Image();
-    img.src = "/only_gold_logo.webp";
-    img.onload = () => setIsLogoLoaded(true);
-  }, []);
 
   useEffect(() => {
     const start = Date.now();
@@ -50,12 +45,14 @@ export default function LoadingScreen() {
             className="relative"
           >
             <div className="flex flex-col items-center gap-6">
-              <img
+              <Image
                 src="/only_gold_logo.webp"
                 alt="Melloul & Partners"
                 width={250}
                 height={250}
-                style={{ objectFit: "contain" }}
+                priority
+                className="object-contain"
+                onLoad={() => setIsLogoLoaded(true)}
               />
             </div>
 

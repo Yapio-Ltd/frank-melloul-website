@@ -14,7 +14,7 @@ export default function PreloadResources() {
     preloadLogo.rel = "preload";
     preloadLogo.href = "/only_gold_logo.webp";
     preloadLogo.as = "image";
-    preloadLogo.type = "image/png";
+    preloadLogo.type = "image/webp";
     preloadLogo.setAttribute("fetchpriority", "high");
     document.head.appendChild(preloadLogo);
   }, []);

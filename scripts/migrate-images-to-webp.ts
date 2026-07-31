@@ -9,8 +9,7 @@
  */
 
 import { createClient } from "@supabase/supabase-js";
-import { existsSync, readFileSync, writeFileSync } from "fs";
-import { join } from "path";
+import { spawnSync } from "child_process";
 import {
   buildWebpStoragePath,
   imageKindFromFolder,
@@ -153,6 +152,10 @@ async function migrateSupabaseImages(): Promise<MigrationStats> {
   if (articlesError) throw new Error(articlesError.message);
 
   for (const row of articles ?? []) {
+    if (!row.image_path) {
+      stats.skipped++;
+      continue;
+    }
     await migrateStoragePath(
       client,
       "articles",
@@ -170,6 +173,10 @@ async function migrateSupabaseImages(): Promise<MigrationStats> {
   if (videosError) throw new Error(videosError.message);
 
   for (const row of videos ?? []) {
+    if (!row.thumbnail_path) {
+      stats.skipped++;
+      continue;
+    }
     await migrateStoragePath(
       client,
       "videos",
@@ -182,44 +189,6 @@ async function migrateSupabaseImages(): Promise<MigrationStats> {
   return stats;
 }
 
-async function migratePublicAsset(
-  filename: string,
-  kind: "article" | "thumbnail",
-  stats: MigrationStats
-): Promise<void> {
-  const publicDir = join(process.cwd(), "public");
-  const sourcePath = join(publicDir, filename);
-
-  if (!existsSync(sourcePath)) {
-    console.log(`  ⊘ Fichier absent : ${filename}`);
-    stats.skipped++;
-    return;
-  }
-
-  const webpName = filename.replace(/\.[^.]+$/, ".webp");
-  const targetPath = join(publicDir, webpName);
-
-  if (existsSync(targetPath) && isWebpPath(webpName)) {
-    console.log(`  ⊘ Déjà converti : ${webpName}`);
-    stats.skipped++;
-    return;
-  }
-
-  const input = readFileSync(sourcePath);
-  const bytesBefore = input.length;
-  const { buffer } = await optimizeImage(input, kind);
-
-  writeFileSync(targetPath, buffer);
-  stats.processed++;
-  stats.bytesBefore += bytesBefore;
-  stats.bytesAfter += buffer.length;
-
-  const saved = ((1 - buffer.length / bytesBefore) * 100).toFixed(1);
-  console.log(
-    `  ✓ public/${filename} → public/${webpName} (${formatBytes(bytesBefore)} → ${formatBytes(buffer.length)}, -${saved}%)`
-  );
-}
-
 async function migratePublicAssets(): Promise<MigrationStats> {
   const stats: MigrationStats = {
     processed: 0,
@@ -230,9 +199,16 @@ async function migratePublicAssets(): Promise<MigrationStats> {
   };
 
   console.log("\n── Assets public/ ──");
-  await migratePublicAsset("frank_melloul_avatar.jpeg", "article", stats);
-  await migratePublicAsset("only_gold_logo.png", "thumbnail", stats);
-  await migratePublicAsset("avatar_to_circle.png", "thumbnail", stats);
+  const result = spawnSync("npx", ["tsx", "scripts/optimize-public-images.ts"], {
+    stdio: "inherit",
+    cwd: process.cwd(),
+    env: process.env,
+  });
+  if (result.status !== 0) {
+    stats.errors++;
+  } else {
+    stats.processed++;
+  }
 
   return stats;
 }

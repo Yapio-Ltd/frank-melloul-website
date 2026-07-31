@@ -20,7 +20,7 @@ export async function optimizeImage(
       withoutEnlargement: true,
       fit: "inside",
     })
-    .webp({ quality: WEBP_QUALITY })
+    .webp({ quality: WEBP_QUALITY, effort: 6 })
     .toBuffer();
 
   return { buffer, contentType: "image/webp" };

@@ -63,13 +63,13 @@ export const metadata: Metadata = {
   },
   icons: {
     icon: [
-      { url: "/only_gold_logo.png", sizes: "32x32", type: "image/png" },
-      { url: "/only_gold_logo.png", sizes: "16x16", type: "image/png" },
+      { url: "/favicon-32.png", sizes: "32x32", type: "image/png" },
+      { url: "/favicon-16.png", sizes: "16x16", type: "image/png" },
     ],
     apple: [
-      { url: "/only_gold_logo.png", sizes: "180x180", type: "image/png" },
+      { url: "/apple-touch-icon.png", sizes: "180x180", type: "image/png" },
     ],
-    shortcut: "/only_gold_logo.png",
+    shortcut: "/favicon-32.png",
   },
   openGraph: {
     title: "Frank Melloul | Melloul & Partners — Global Advisory",
@@ -112,7 +112,7 @@ export default function RootLayout({
         "@id": `${origin}/#organization`,
         name: "Melloul & Partners",
         url: `${origin}/`,
-        logo: `${origin}/only_gold_logo.png`,
+        logo: `${origin}/only_gold_logo.webp`,
         description:
           "Global strategic advisory firm specializing in influence, diplomacy, and executive counsel for leaders worldwide.",
         email: "contact@melloulandpartners.com",
@@ -131,7 +131,7 @@ export default function RootLayout({
         givenName: "Frank",
         familyName: "Melloul",
         url: `${origin}/`,
-        image: `${origin}/frank_melloul_avatar.jpeg`,
+        image: `${origin}/frank_melloul_avatar.webp`,
         description:
           "Founder of Melloul & Partners. Expert in strategic advisory, diplomacy, influence, and international affairs for global leaders.",
         jobTitle: "Founder",
@@ -288,12 +288,12 @@ export default function RootLayout({
               (function() {
                 document.documentElement.lang = location.pathname.startsWith('/ar') ? 'ar' : location.pathname.startsWith('/fr') ? 'fr' : 'en';
                 document.documentElement.dir = location.pathname.startsWith('/ar') ? 'rtl' : 'ltr';
-                if (!document.querySelector('link[rel="preload"][href="/only_gold_logo.png"]')) {
+                if (!document.querySelector('link[rel="preload"][href="/only_gold_logo.webp"]')) {
                   const link1 = document.createElement('link');
                   link1.rel = 'preload';
-                  link1.href = '/only_gold_logo.png';
+                  link1.href = '/only_gold_logo.webp';
                   link1.as = 'image';
-                  link1.type = 'image/png';
+                  link1.type = 'image/webp';
                   link1.setAttribute('fetchpriority', 'high');
                   document.head.appendChild(link1);
                 }

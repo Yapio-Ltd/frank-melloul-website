@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useLanguage } from "@/context/LanguageContext";
@@ -113,13 +114,13 @@ export default function Header() {
                 whileHover={{ scale: 1.02 }}
                 transition={{ duration: 0.3 }}
               >
-                {/* Using native img to avoid Next.js image optimization placeholder */}
-                <img
-                  src="/only_gold_logo.png"
+                <Image
+                  src="/only_gold_logo.webp"
                   alt="Melloul & Partners"
                   width={120}
                   height={120}
-                  style={{ objectFit: "contain" }}
+                  priority
+                  className="object-contain"
                 />
               </motion.div>
             </Link>

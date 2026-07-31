@@ -7,7 +7,7 @@ Toujours nécessaires (Render + local) :
 - `NEXT_PUBLIC_SUPABASE_URL`
 - `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_DEFAULT_KEY`
 
-### `SUPABASE_SERVICE_ROLE_KEY` (migration uniquement)
+### `SUPABASE_SERVICE_ROLE_KEY` (migration Storage uniquement)
 
 | Variable | Où la trouver |
 |----------|----------------|
@@ -17,13 +17,21 @@ Cette clé n’est **pas** requise pour l’upload admin quotidien (`POST /api/u
 
 Elle est uniquement nécessaire pour :
 
-- `npm run migrate:images` — migration one-shot du stock existant
+- `npm run migrate:images` — migration one-shot du stock Supabase existant
 
 **Ne jamais** exposer cette clé côté client (`NEXT_PUBLIC_*`).
 
-## Migration one-shot (après déploiement)
+## Assets `public/`
 
-Une fois `SUPABASE_SERVICE_ROLE_KEY` configurée localement dans `.env` :
+```bash
+npm run optimize:images
+```
+
+Convertit / recompresse les logos et avatars en WebP, génère des favicons PNG légers, et retire les gros PNG inutiles.
+
+## Migration Storage Supabase (one-shot)
+
+Une fois `SUPABASE_SERVICE_ROLE_KEY` dans `.env` :
 
 ```bash
 npm run migrate:images
@@ -31,25 +39,21 @@ npm run migrate:images
 
 Le script :
 
-1. Convertit toutes les images Supabase (`articles/`, `thumbnails/`) en WebP
-2. Met à jour les chemins en base (`articles.image_path`, `videos.thumbnail_path`)
+1. Convertit les images Supabase (`articles/`, `thumbnails/`) en WebP
+2. Met à jour les chemins en base
 3. Supprime les anciens fichiers
-4. Génère les variantes WebP dans `public/` (`only_gold_logo.webp`, etc.)
+4. Lance aussi `optimize:images` pour `public/`
 
-Le script est **idempotent** : les fichiers déjà en `.webp` sont ignorés.
+Idempotent : les fichiers déjà en `.webp` côté Storage sont ignorés.
 
-## Uploads futurs
+## Uploads futurs (admin)
 
-Depuis l'admin (`/admin`), les images d'articles et miniatures vidéo passent automatiquement par `/api/upload-media` :
+Depuis `/admin`, articles et miniatures vidéo passent par `/api/upload-media` :
 
-- Vérification de la session admin (Bearer JWT)
-- Redimensionnement (1920 px articles, 1280 px miniatures)
+- Redimensionnement (1920 px / 1280 px)
 - Conversion WebP qualité 80
-- Suppression des métadonnées EXIF
-- Upload Storage avec le JWT admin (pas de service role)
-
-Les fichiers vidéo (`.mp4`) ne sont pas convertis.
+- Upload Storage via JWT admin
 
 ## Affichage public
 
-Les pages Communication utilisent `next/image` avec des srcset responsives pour réduire encore le poids côté navigateur.
+Header, Footer, biographie et pages Communication utilisent `next/image` (WebP/AVIF via Next).

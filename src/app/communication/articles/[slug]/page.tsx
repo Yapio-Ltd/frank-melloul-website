@@ -6,7 +6,7 @@ import ArticlePageClient from "@/app/communication/articles/[slug]/ArticlePageCl
 import { excerptFromHtml } from "@/lib/utils";
 
 const SITE_URL = "https://melloulandpartners.com";
-const FALLBACK_IMAGE = `${SITE_URL}/logo-gold.png`;
+const FALLBACK_IMAGE = `${SITE_URL}/logo-gold.webp`;
 const META_DESC_MAX = 160;
 const ARTICLE_DESC_MAX = 300;
 

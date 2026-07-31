@@ -8,7 +8,7 @@ const SITE_URL = "https://melloulandpartners.com";
 const DEFAULT_TITLE = "التواصل | Melloul & Partners";
 const DEFAULT_DESC =
   "الظهور الإعلامي والمقابلات وآراء Melloul & Partners.";
-const FALLBACK_IMAGE = `${SITE_URL}/logo-gold.png`;
+const FALLBACK_IMAGE = `${SITE_URL}/logo-gold.webp`;
 
 function thumbnailUrl(path: string): string {
   const base = process.env.NEXT_PUBLIC_SUPABASE_URL;

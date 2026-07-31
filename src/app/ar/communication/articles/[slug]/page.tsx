@@ -7,7 +7,7 @@ import { excerptFromHtml } from "@/lib/utils";
 import { LANGUAGE_ALTERNATES, pickLocalizedText } from "@/lib/locale";
 
 const SITE_URL = "https://melloulandpartners.com";
-const FALLBACK_IMAGE = `${SITE_URL}/logo-gold.png`;
+const FALLBACK_IMAGE = `${SITE_URL}/logo-gold.webp`;
 const META_DESC_MAX = 160;
 const ARTICLE_DESC_MAX = 300;
 
