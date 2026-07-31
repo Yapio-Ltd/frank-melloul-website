@@ -1645,18 +1645,35 @@ function ArticlesDashboard({
           Bucket: <span className="text-primary-300">{SUPABASE_MEDIA_BUCKET}</span>
         </div>
 
-        <button
-          type="button"
-          onClick={() => setCreating(true)}
-          className="rounded-lg border border-gold-500/20 bg-gold-500/10 text-gold-300 px-3 py-2 text-sm hover:bg-gold-500/15 transition-colors"
-        >
-          + Ajouter un article
-        </button>
+        {creating || editing ? (
+          <button
+            type="button"
+            onClick={() => {
+              setCreating(false);
+              setEditing(null);
+            }}
+            className="rounded-lg border border-gold-500/15 bg-navy-950/30 text-primary-200 px-3 py-2 text-sm hover:border-gold-500/30 hover:text-gold-200 transition-colors"
+          >
+            ← Retour aux articles
+          </button>
+        ) : (
+          <button
+            type="button"
+            onClick={() => {
+              setEditing(null);
+              setCreating(true);
+            }}
+            className="rounded-lg border border-gold-500/20 bg-gold-500/10 text-gold-300 px-3 py-2 text-sm hover:bg-gold-500/15 transition-colors"
+          >
+            + Ajouter un article
+          </button>
+        )}
       </div>
 
       {(creating || editing) && (
         <ArticleForm
-          mode={creating ? "create" : "edit"}
+          key={editing?.id ?? "new-article"}
+          mode={editing ? "edit" : "create"}
           initial={editing ?? undefined}
           arColumnsMissing={arColumnsMissing}
           onClose={() => {
@@ -1671,6 +1688,7 @@ function ArticlesDashboard({
         />
       )}
 
+      {!creating && !editing ? (
       <div className="rounded-2xl border border-gold-500/10 bg-navy-950/60 backdrop-blur">
         <div className="p-5 border-b border-gold-500/10 flex items-center justify-between">
           <h2 className="text-primary-100 font-medium">Articles</h2>
@@ -1691,16 +1709,28 @@ function ArticlesDashboard({
           </div>
         ) : (
           <ul className="divide-y divide-gold-500/10">
-            {articles.map((a) => (
+            {articles.map((a) => {
+              const displayTitle =
+                a.title?.trim() ||
+                a.title_en?.trim() ||
+                a.title_ar?.trim() ||
+                "Sans titre";
+              return (
               <li key={a.id} className="p-5 flex flex-col md:flex-row gap-4">
                 <div className="w-full md:w-56">
                   <div className="w-full aspect-video rounded-lg overflow-hidden bg-navy-900/50 border border-gold-500/10">
-                    <img
-                      src={getPublicUrl(client, a.image_path)}
-                      alt={a.title}
-                      className="w-full h-full object-cover"
-                      loading="lazy"
-                    />
+                    {a.image_path ? (
+                      <img
+                        src={getPublicUrl(client, a.image_path)}
+                        alt={displayTitle}
+                        className="w-full h-full object-cover"
+                        loading="lazy"
+                      />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center text-primary-600 text-xs">
+                        Sans image
+                      </div>
+                    )}
                   </div>
                 </div>
 
@@ -1709,7 +1739,7 @@ function ArticlesDashboard({
                     <div className="min-w-0">
                       <div className="flex items-center gap-2 flex-wrap">
                         <h3 className="text-primary-100 font-medium truncate">
-                          {a.title}
+                          {displayTitle}
                         </h3>
                         <span
                           className={[
@@ -1763,14 +1793,17 @@ function ArticlesDashboard({
                         {sharingArticleId === a.id && (
                           <AdminSharePopover
                             url={getArticleShareUrl(a)}
-                            title={a.title}
+                            title={displayTitle}
                             onClose={() => setSharingArticleId(null)}
                           />
                         )}
                       </div>
                       <button
                         type="button"
-                        onClick={() => setEditing(a)}
+                        onClick={() => {
+                          setCreating(false);
+                          setEditing(a);
+                        }}
                         className="rounded-lg border border-gold-500/15 bg-navy-950/30 text-primary-200 px-3 py-2 text-sm hover:border-gold-500/30 hover:text-gold-200 transition-colors"
                       >
                         Éditer
@@ -1793,10 +1826,12 @@ function ArticlesDashboard({
                   </div>
                 </div>
               </li>
-            ))}
+              );
+            })}
           </ul>
         )}
       </div>
+      ) : null}
     </section>
   );
 }
@@ -2192,13 +2227,22 @@ function ArticleForm({
               : "Tu peux modifier les champs et remplacer l'image."}
           </p>
         </div>
-        <button
-          type="button"
-          onClick={onClose}
-          className="text-primary-400 hover:text-gold-300 transition-colors text-sm"
-        >
-          Fermer
-        </button>
+        <div className="flex items-center gap-3 shrink-0">
+          <button
+            type="button"
+            onClick={onClose}
+            className="rounded-lg border border-gold-500/15 bg-navy-950/30 text-primary-200 px-3 py-1.5 text-sm hover:border-gold-500/30 hover:text-gold-200 transition-colors"
+          >
+            ← Retour
+          </button>
+          <button
+            type="button"
+            onClick={onClose}
+            className="text-primary-400 hover:text-gold-300 transition-colors text-sm"
+          >
+            Fermer
+          </button>
+        </div>
       </div>
 
       <form onSubmit={onSubmit} className="grid md:grid-cols-2 gap-4">
