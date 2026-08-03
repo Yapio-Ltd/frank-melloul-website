@@ -236,7 +236,7 @@ export default function CommunicationPageClient() {
           slug: row.slug ?? null,
           title: pickLocalizedText(row as unknown as Record<string, unknown>, "title", locale),
           content: pickLocalizedText(row as unknown as Record<string, unknown>, "content", locale),
-          image: getPublicUrl(row.image_path),
+          image: row.image_path ? getPublicUrl(row.image_path) : "/logo-gold.webp",
           externalUrl: row.external_url ?? null,
         }));
 
@@ -902,15 +902,19 @@ function ArticleCard({
   const isExternal = Boolean(article.externalUrl);
 
   const articlePath = article.slug
-    ? `/communication/articles/${article.slug}`
+    ? `/communication/articles/${encodeURIComponent(article.slug)}`
     : `/communication/articles/${article.id}`;
   const internalHref = buildLocalizedPath(articlePath, locale);
+  const imageSrc =
+    article.image && !article.image.endsWith("/media/")
+      ? article.image
+      : "/logo-gold.webp";
 
   const thumbnail = (
     <div className="relative aspect-video mb-3 overflow-hidden rounded-xl bg-navy-800 w-full">
       <Image
-        src={article.image}
-        alt={article.title}
+        src={imageSrc}
+        alt={article.title || "Article"}
         fill
         sizes="(max-width: 768px) 100vw, 33vw"
         className="object-cover transition-transform duration-500 group-hover:scale-105"

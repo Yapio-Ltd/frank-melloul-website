@@ -235,7 +235,13 @@ async function buildUniqueArticleSlug(
 
 function getArticleShareUrl(article: ArticleRow) {
   if (article.external_url) return article.external_url;
-  return `https://melloulandpartners.com/communication/articles/${article.slug}`;
+  const hasLatinSlug =
+    Boolean(article.slug) &&
+    /^[a-z0-9]+(?:-[a-z0-9]+)*$/i.test(article.slug);
+  const segment = hasLatinSlug
+    ? article.slug
+    : encodeURIComponent(article.slug || article.id);
+  return `https://melloulandpartners.com/communication/articles/${segment}`;
 }
 
 function AdminSharePopover({
@@ -319,6 +325,7 @@ function AdminSharePopover({
 }
 
 function getPublicUrl(client: NonNullable<typeof supabase>, path: string) {
+  if (!path?.trim()) return "";
   const { data } = client.storage.from(SUPABASE_MEDIA_BUCKET).getPublicUrl(path);
   return data.publicUrl;
 }
@@ -1573,9 +1580,17 @@ function ArticlesDashboard({
   const client = supabase!;
   const [articles, setArticles] = useState<ArticleRow[]>([]);
   const [loading, setLoading] = useState(true);
-  const [editing, setEditing] = useState<ArticleRow | null>(null);
-  const [creating, setCreating] = useState(false);
+  /** Single form state — avoids create+edit stuck together */
+  const [panel, setPanel] = useState<
+    | { kind: "list" }
+    | { kind: "create" }
+    | { kind: "edit"; article: ArticleRow }
+  >({ kind: "list" });
+  const [openingId, setOpeningId] = useState<string | null>(null);
   const [sharingArticleId, setSharingArticleId] = useState<string | null>(null);
+  const formTopRef = useRef<HTMLDivElement>(null);
+
+  const isFormOpen = panel.kind !== "list";
 
   const refresh = async () => {
     setLoading(true);
@@ -1594,8 +1609,53 @@ function ArticlesDashboard({
   };
 
   useEffect(() => {
-    refresh();
+    void refresh();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  useEffect(() => {
+    if (!isFormOpen) return;
+    formTopRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }, [isFormOpen, panel]);
+
+  const closePanel = () => setPanel({ kind: "list" });
+
+  const openCreate = () => {
+    setSharingArticleId(null);
+    setPanel({ kind: "create" });
+  };
+
+  const openEdit = async (id: string) => {
+    setSharingArticleId(null);
+    setOpeningId(id);
+    try {
+      const { data, error } = await client
+        .from("articles")
+        .select("*")
+        .eq("id", id)
+        .maybeSingle();
+
+      if (error) {
+        toast.error(`Impossible d'ouvrir l'article: ${error.message}`);
+        return;
+      }
+      if (!data) {
+        toast.error("Article introuvable. Rafraîchissez la liste.");
+        await refresh();
+        return;
+      }
+
+      setPanel({ kind: "edit", article: data as ArticleRow });
+    } catch (err) {
+      toast.error(
+        err instanceof Error
+          ? err.message
+          : "Impossible d'ouvrir l'article pour édition."
+      );
+    } finally {
+      setOpeningId(null);
+    }
+  };
 
   const onTogglePublished = async (row: ArticleRow) => {
     const { error } = await client
@@ -1607,12 +1667,17 @@ function ArticlesDashboard({
       return;
     }
     toast.success(row.is_published ? "Dépublié." : "Publié.");
-    refresh();
+    await refresh();
   };
 
   const onDelete = async (row: ArticleRow) => {
+    const label =
+      row.title?.trim() ||
+      row.title_en?.trim() ||
+      row.title_ar?.trim() ||
+      "cet article";
     const ok = window.confirm(
-      `Supprimer définitivement "${row.title}" (DB + image Storage) ?`
+      `Supprimer définitivement "${label}" (DB + image Storage) ?`
     );
     if (!ok) return;
 
@@ -1629,29 +1694,29 @@ function ArticlesDashboard({
         .remove([row.image_path]);
       if (storageError) {
         toast.error(`DB supprimée, mais image non supprimée: ${storageError.message}`);
-        refresh();
+        await refresh();
         return;
       }
     }
 
     toast.success("Supprimé.");
-    refresh();
+    if (panel.kind === "edit" && panel.article.id === row.id) {
+      closePanel();
+    }
+    await refresh();
   };
 
   return (
-    <section className="space-y-6">
+    <section className="space-y-6" ref={formTopRef}>
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="text-xs text-primary-500">
           Bucket: <span className="text-primary-300">{SUPABASE_MEDIA_BUCKET}</span>
         </div>
 
-        {creating || editing ? (
+        {isFormOpen ? (
           <button
             type="button"
-            onClick={() => {
-              setCreating(false);
-              setEditing(null);
-            }}
+            onClick={closePanel}
             className="rounded-lg border border-gold-500/15 bg-navy-950/30 text-primary-200 px-3 py-2 text-sm hover:border-gold-500/30 hover:text-gold-200 transition-colors"
           >
             ← Retour aux articles
@@ -1659,10 +1724,7 @@ function ArticlesDashboard({
         ) : (
           <button
             type="button"
-            onClick={() => {
-              setEditing(null);
-              setCreating(true);
-            }}
+            onClick={openCreate}
             className="rounded-lg border border-gold-500/20 bg-gold-500/10 text-gold-300 px-3 py-2 text-sm hover:bg-gold-500/15 transition-colors"
           >
             + Ajouter un article
@@ -1670,31 +1732,40 @@ function ArticlesDashboard({
         )}
       </div>
 
-      {(creating || editing) && (
+      {panel.kind === "create" && (
         <ArticleForm
-          key={editing?.id ?? "new-article"}
-          mode={editing ? "edit" : "create"}
-          initial={editing ?? undefined}
+          key="new-article"
+          mode="create"
           arColumnsMissing={arColumnsMissing}
-          onClose={() => {
-            setCreating(false);
-            setEditing(null);
-          }}
-          onSaved={() => {
-            setCreating(false);
-            setEditing(null);
-            refresh();
+          onClose={closePanel}
+          onSaved={async () => {
+            closePanel();
+            await refresh();
           }}
         />
       )}
 
-      {!creating && !editing ? (
+      {panel.kind === "edit" && (
+        <ArticleForm
+          key={panel.article.id}
+          mode="edit"
+          initial={panel.article}
+          arColumnsMissing={arColumnsMissing}
+          onClose={closePanel}
+          onSaved={async () => {
+            closePanel();
+            await refresh();
+          }}
+        />
+      )}
+
+      {panel.kind === "list" ? (
       <div className="rounded-2xl border border-gold-500/10 bg-navy-950/60 backdrop-blur">
         <div className="p-5 border-b border-gold-500/10 flex items-center justify-between">
           <h2 className="text-primary-100 font-medium">Articles</h2>
           <button
             type="button"
-            onClick={refresh}
+            onClick={() => void refresh()}
             className="text-xs text-primary-400 hover:text-gold-300 transition-colors"
           >
             Rafraîchir
@@ -1715,9 +1786,19 @@ function ArticlesDashboard({
                 a.title_en?.trim() ||
                 a.title_ar?.trim() ||
                 "Sans titre";
+              const isOpening = openingId === a.id;
               return (
-              <li key={a.id} className="p-5 flex flex-col md:flex-row gap-4">
-                <div className="w-full md:w-56">
+              <li
+                key={a.id}
+                className="p-5 flex flex-col md:flex-row gap-4 hover:bg-navy-900/30 transition-colors"
+              >
+                <button
+                  type="button"
+                  onClick={() => void openEdit(a.id)}
+                  disabled={Boolean(openingId)}
+                  className="w-full md:w-56 text-left disabled:opacity-60"
+                  aria-label={`Éditer ${displayTitle}`}
+                >
                   <div className="w-full aspect-video rounded-lg overflow-hidden bg-navy-900/50 border border-gold-500/10">
                     {a.image_path ? (
                       <img
@@ -1732,13 +1813,18 @@ function ArticlesDashboard({
                       </div>
                     )}
                   </div>
-                </div>
+                </button>
 
                 <div className="flex-1 min-w-0">
                   <div className="flex flex-wrap items-center justify-between gap-3">
-                    <div className="min-w-0">
+                    <button
+                      type="button"
+                      onClick={() => void openEdit(a.id)}
+                      disabled={Boolean(openingId)}
+                      className="min-w-0 text-left flex-1 disabled:opacity-60"
+                    >
                       <div className="flex items-center gap-2 flex-wrap">
-                        <h3 className="text-primary-100 font-medium truncate">
+                        <h3 className="text-primary-100 font-medium truncate group-hover:text-gold-200">
                           {displayTitle}
                         </h3>
                         <span
@@ -1757,35 +1843,40 @@ function ArticlesDashboard({
                           </span>
                         )}
                       </div>
-                      {a.external_url && (
-                        <a
-                          href={a.external_url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-blue-400 hover:text-blue-300 text-xs mt-1 block truncate underline"
-                        >
+                      {a.external_url ? (
+                        <span className="text-blue-400 text-xs mt-1 block truncate underline">
                           {a.external_url}
-                        </a>
-                      )}
+                        </span>
+                      ) : null}
                       {a.content ? (
                         <p className="text-primary-400 text-sm mt-2 line-clamp-3">
                           {htmlToPlainText(a.content)}
                         </p>
+                      ) : a.content_ar ? (
+                        <p className="text-primary-400 text-sm mt-2 line-clamp-3" dir="rtl">
+                          {htmlToPlainText(a.content_ar)}
+                        </p>
+                      ) : a.content_en ? (
+                        <p className="text-primary-400 text-sm mt-2 line-clamp-3">
+                          {htmlToPlainText(a.content_en)}
+                        </p>
                       ) : null}
                       <p className="text-primary-600 text-xs mt-2">
                         Ordre: {a.sort_order}
+                        {a.slug ? ` · /${a.slug}` : ""}
                       </p>
-                    </div>
+                    </button>
 
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 flex-wrap">
                       <div className="relative">
                         <button
                           type="button"
-                          onClick={() =>
+                          onClick={(e) => {
+                            e.stopPropagation();
                             setSharingArticleId(
                               sharingArticleId === a.id ? null : a.id
-                            )
-                          }
+                            );
+                          }}
                           className="rounded-lg border border-blue-500/20 bg-blue-500/10 text-blue-200 px-3 py-2 text-sm hover:bg-blue-500/15 transition-colors"
                         >
                           Partager
@@ -1800,24 +1891,22 @@ function ArticlesDashboard({
                       </div>
                       <button
                         type="button"
-                        onClick={() => {
-                          setCreating(false);
-                          setEditing(a);
-                        }}
-                        className="rounded-lg border border-gold-500/15 bg-navy-950/30 text-primary-200 px-3 py-2 text-sm hover:border-gold-500/30 hover:text-gold-200 transition-colors"
+                        disabled={Boolean(openingId)}
+                        onClick={() => void openEdit(a.id)}
+                        className="rounded-lg border border-gold-500/20 bg-gold-500/10 text-gold-200 px-3 py-2 text-sm hover:bg-gold-500/15 transition-colors disabled:opacity-60"
                       >
-                        Éditer
+                        {isOpening ? "Ouverture…" : "Éditer"}
                       </button>
                       <button
                         type="button"
-                        onClick={() => onTogglePublished(a)}
+                        onClick={() => void onTogglePublished(a)}
                         className="rounded-lg border border-gold-500/15 bg-navy-950/30 text-primary-200 px-3 py-2 text-sm hover:border-gold-500/30 hover:text-gold-200 transition-colors"
                       >
                         {a.is_published ? "Dépublier" : "Publier"}
                       </button>
                       <button
                         type="button"
-                        onClick={() => onDelete(a)}
+                        onClick={() => void onDelete(a)}
                         className="rounded-lg border border-red-500/20 bg-red-500/10 text-red-200 px-3 py-2 text-sm hover:bg-red-500/15 transition-colors"
                       >
                         Supprimer
@@ -1850,12 +1939,12 @@ function ArticleForm({
   onSaved: () => void;
 }) {
   const client = supabase!;
-  const [title, setTitle] = useState(initial?.title ?? "");
-  const [content, setContent] = useState(initial?.content ?? "");
-  const [titleEn, setTitleEn] = useState(initial?.title_en ?? "");
-  const [contentEn, setContentEn] = useState(initial?.content_en ?? "");
-  const [titleAr, setTitleAr] = useState(initial?.title_ar ?? "");
-  const [contentAr, setContentAr] = useState(initial?.content_ar ?? "");
+  const [title, setTitle] = useState(() => initial?.title ?? "");
+  const [content, setContent] = useState(() => initial?.content ?? "");
+  const [titleEn, setTitleEn] = useState(() => initial?.title_en ?? "");
+  const [contentEn, setContentEn] = useState(() => initial?.content_en ?? "");
+  const [titleAr, setTitleAr] = useState(() => initial?.title_ar ?? "");
+  const [contentAr, setContentAr] = useState(() => initial?.content_ar ?? "");
   const [langs, setLangs] = useState<LangFlags>(() => {
     if (mode === "create" && arColumnsMissing) {
       return { fr: true, en: true, ar: false };
@@ -1869,10 +1958,16 @@ function ArticleForm({
     if (arColumnsMissing) inferred.ar = false;
     return inferred;
   });
-  const [slug, setSlug] = useState(initial?.slug ?? "");
-  const [isPublished, setIsPublished] = useState(initial?.is_published ?? true);
-  const [sortOrder, setSortOrder] = useState<number>(initial?.sort_order ?? 0);
-  const [externalUrl, setExternalUrl] = useState(initial?.external_url ?? "");
+  const [slug, setSlug] = useState(() => initial?.slug ?? "");
+  const [isPublished, setIsPublished] = useState(
+    () => initial?.is_published ?? true
+  );
+  const [sortOrder, setSortOrder] = useState<number>(
+    () => initial?.sort_order ?? 0
+  );
+  const [externalUrl, setExternalUrl] = useState(
+    () => initial?.external_url ?? ""
+  );
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [ogPreviewUrl, setOgPreviewUrl] = useState<string | null>(null);
   const [fetchingOg, setFetchingOg] = useState(false);

@@ -41,8 +41,15 @@ const COLS_WITH_AR =
 const COLS_BASE =
   "id,slug,title,title_en,content,content_en,image_path,created_at,updated_at";
 
-async function getArticle(identifier: string) {
+async function getArticle(rawIdentifier: string) {
   if (!supabase) return null;
+
+  let identifier = rawIdentifier;
+  try {
+    identifier = decodeURIComponent(rawIdentifier);
+  } catch {
+    identifier = rawIdentifier;
+  }
 
   const col = isUUID(identifier) ? "id" : "slug";
   let { data, error } = await supabase

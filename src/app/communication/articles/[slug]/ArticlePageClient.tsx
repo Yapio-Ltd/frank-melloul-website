@@ -88,6 +88,7 @@ type RelatedArticleQueryRow = {
 };
 
 function getPublicUrl(path: string) {
+  if (!path?.trim()) return "";
   return (
     supabase?.storage.from(SUPABASE_MEDIA_BUCKET).getPublicUrl(path).data
       .publicUrl ?? ""
@@ -111,12 +112,18 @@ function formatDateShort(iso: string, locale: Locale) {
 }
 
 export default function ArticlePageClient({
-  identifier,
+  identifier: rawIdentifier,
   locale,
 }: {
   identifier: string;
   locale: Locale;
 }) {
+  let identifier = rawIdentifier;
+  try {
+    identifier = decodeURIComponent(rawIdentifier);
+  } catch {
+    identifier = rawIdentifier;
+  }
   const isId = UUID_RE.test(identifier);
   const [article, setArticle] = useState<ArticleData | null>(null);
   const [relatedArticles, setRelatedArticles] = useState<RelatedArticle[]>([]);
@@ -237,8 +244,12 @@ export default function ArticlePageClient({
             {/* Hero image */}
             <div className="relative w-full h-[60vh] overflow-hidden">
               <Image
-                src={getPublicUrl(article.image_path)}
-                alt={article.title}
+                src={
+                  article.image_path
+                    ? getPublicUrl(article.image_path)
+                    : "/logo-gold.webp"
+                }
+                alt={article.title || "Article"}
                 fill
                 sizes="100vw"
                 priority
@@ -406,7 +417,9 @@ export default function ArticlePageClient({
 
                     <div className="space-y-5">
                       {relatedArticles.map((rel) => {
-                        const relIdentifier = rel.slug ?? rel.id;
+                        const relIdentifier = rel.slug
+                          ? encodeURIComponent(rel.slug)
+                          : rel.id;
                         const articleHref = buildLocalizedPath(
                           `/communication/articles/${relIdentifier}`,
                           locale
