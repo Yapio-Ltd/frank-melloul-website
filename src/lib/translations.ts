@@ -141,6 +141,7 @@ export const translations = {
     footer: {
       copyright: "© 2025 MELLOUL & Partners. Global Advisory.",
       privacy: "Privacy Policy",
+      poweredBy: "Powered by",
     },
   },
   fr: {
@@ -281,6 +282,7 @@ export const translations = {
     footer: {
       copyright: "© 2025 MELLOUL & Partners. Global Advisory.",
       privacy: "Politique de confidentialité",
+      poweredBy: "Powered by",
     },
   },
   ar: {
@@ -411,6 +413,7 @@ export const translations = {
     footer: {
       copyright: "© 2025 MELLOUL & Partners. Global Advisory.",
       privacy: "سياسة الخصوصية",
+      poweredBy: "Powered by",
     },
   },
 } as const;

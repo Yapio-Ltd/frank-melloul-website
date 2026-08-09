@@ -207,6 +207,37 @@ export default function Footer() {
             {t.footer.copyright}
           </motion.p>
 
+          {/* Powered by Yapio */}
+          <motion.div
+            initial={{ opacity: 0 }}
+            whileInView={{ opacity: 1 }}
+            transition={{ duration: 0.6, delay: 0.22 }}
+            viewport={{ once: true }}
+          >
+            <a
+              href="https://www.yapio.io/"
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-label={`${t.footer.poweredBy} Yapio`}
+              className="group inline-flex items-center gap-2 rounded-full border border-white/5 bg-white/[0.02] px-3 py-1.5 text-primary-500 transition-all duration-300 hover:border-gold-500/25 hover:bg-gold-500/[0.04] hover:text-primary-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold-500/40"
+            >
+              <span className="text-[10px] uppercase tracking-[0.18em] text-primary-500/80 transition-colors duration-300 group-hover:text-primary-300">
+                {t.footer.poweredBy}
+              </span>
+              <Image
+                src="/icononly_nav.webp"
+                alt=""
+                width={16}
+                height={16}
+                unoptimized
+                className="h-4 w-4 object-contain opacity-70 transition-all duration-300 group-hover:opacity-100 group-hover:scale-105"
+              />
+              <span className="text-xs font-medium tracking-wide text-primary-300 transition-colors duration-300 group-hover:text-gold-400">
+                Yapio
+              </span>
+            </a>
+          </motion.div>
+
           {/* Secret settings (triple-clic) */}
           <motion.button
             type="button"
