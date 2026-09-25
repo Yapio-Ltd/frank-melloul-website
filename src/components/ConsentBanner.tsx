@@ -4,17 +4,8 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useLanguage } from "@/context/LanguageContext";
 import { buildLocalizedPath, Locale } from "@/lib/locale";
-
-const CONSENT_STORAGE_KEY = "cookie-consent-v1";
-
-type ConsentChoice = "accepted" | "rejected";
-
-declare global {
-  interface Window {
-    __grantGoogleConsent?: () => void;
-    __denyGoogleConsent?: () => void;
-  }
-}
+import { CONSENT_STORAGE_KEY, type ConsentChoice } from "@/lib/analytics-config";
+import "@/lib/gtag";
 
 const consentTranslations: Record<
   Locale,
@@ -24,31 +15,35 @@ const consentTranslations: Record<
     accept: string;
     reject: string;
     privacy: string;
+    preferences: string;
   }
 > = {
   fr: {
     title: "Préférences de confidentialité",
     description:
-      "Nous utilisons des cookies pour mesurer la performance et améliorer votre expérience. Vous pouvez accepter ou refuser le suivi publicitaire.",
+      "Avec votre accord, Google Analytics mesure les visites et les clics, et Google Ads mesure les conversions publicitaires. Vous pouvez refuser ces cookies et modifier votre choix à tout moment via « Cookies ».",
     accept: "Accepter",
     reject: "Refuser",
     privacy: "Politique de confidentialité",
+    preferences: "Cookies",
   },
   en: {
     title: "Privacy preferences",
     description:
-      "We use cookies to measure performance and improve your experience. You can accept or refuse advertising tracking.",
+      "With your permission, Google Analytics measures visits and clicks, and Google Ads measures advertising conversions. You can decline these cookies and change your choice at any time via “Cookies”.",
     accept: "Accept",
     reject: "Decline",
     privacy: "Privacy policy",
+    preferences: "Cookies",
   },
   ar: {
     title: "إعدادات الخصوصية",
     description:
-      "نستخدم ملفات تعريف الارتباط لقياس الأداء وتحسين تجربتك. يمكنك قبول أو رفض تتبع الإعلانات.",
+      "بموافقتك، يقيس Google Analytics الزيارات والنقرات، ويقيس Google Ads التحويلات الإعلانية. يمكنك رفض ملفات تعريف الارتباط وتغيير اختيارك في أي وقت عبر إعدادات ملفات الارتباط.",
     accept: "قبول",
     reject: "رفض",
     privacy: "سياسة الخصوصية",
+    preferences: "ملفات الارتباط",
   },
 };
 
@@ -57,14 +52,25 @@ export default function ConsentBanner() {
   const t = consentTranslations[locale];
   const [visible, setVisible] = useState(false);
   const [mounted, setMounted] = useState(false);
+  const [initialized, setInitialized] = useState(false);
 
   useEffect(() => {
-    try {
-      const saved = localStorage.getItem(CONSENT_STORAGE_KEY);
-      setVisible(saved !== "accepted" && saved !== "rejected");
-    } catch {
-      setVisible(true);
+    function refresh() {
+      let choice = window.__googleConsentChoice;
+      if (!choice) {
+        try {
+          const saved = localStorage.getItem(CONSENT_STORAGE_KEY);
+          if (saved === "accepted" || saved === "rejected") choice = saved;
+        } catch {
+          // Runtime consent still works when localStorage is disabled.
+        }
+      }
+      setVisible(!choice);
+      setInitialized(true);
     }
+    refresh();
+    window.addEventListener("google-consent-change", refresh);
+    return () => window.removeEventListener("google-consent-change", refresh);
   }, []);
 
   useEffect(() => {
@@ -74,25 +80,44 @@ export default function ConsentBanner() {
   }, [visible]);
 
   const onChoose = (choice: ConsentChoice) => {
-    try {
-      localStorage.setItem(CONSENT_STORAGE_KEY, choice);
-    } catch {
-      // Ignore storage failures and still apply runtime consent choice.
-    }
-
-    if (choice === "accepted") {
-      window.__grantGoogleConsent?.();
+    const apply = choice === "accepted" ? window.__grantGoogleConsent : window.__denyGoogleConsent;
+    if (apply) {
+      apply();
     } else {
-      window.__denyGoogleConsent?.();
+      try {
+        localStorage.setItem(CONSENT_STORAGE_KEY, choice);
+      } catch {
+        // The in-memory choice applies even when persistence is unavailable.
+      }
+      window.__googleConsentChoice = choice;
+      window.dispatchEvent(new CustomEvent("google-consent-change", { detail: { choice } }));
     }
 
     setVisible(false);
   };
 
-  if (!visible) return null;
+  if (!initialized) return null;
+  if (!visible) {
+    return (
+      <button
+        type="button"
+        aria-label={t.title}
+        aria-controls="cookie-preferences"
+        onClick={() => { setMounted(false); setVisible(true); }}
+        className="fixed bottom-3 left-3 z-[80] rounded-md border border-white/20 bg-navy-950/95 px-3 py-1.5 text-xs text-primary-200 shadow-sm transition-colors hover:border-gold-400/60 focus-visible:outline focus-visible:outline-2 focus-visible:outline-gold-400"
+      >
+        {t.preferences}
+      </button>
+    );
+  }
 
   return (
-    <div className="fixed inset-x-0 bottom-4 z-[80] px-4 md:bottom-6 md:px-6">
+    <section
+      id="cookie-preferences"
+      aria-labelledby="cookie-preferences-title"
+      lang={locale}
+      className="fixed inset-x-0 bottom-4 z-[80] px-4 md:bottom-6 md:px-6"
+    >
       <div
         className={[
           "relative mx-auto w-full max-w-3xl overflow-hidden rounded-2xl border",
@@ -106,7 +131,7 @@ export default function ConsentBanner() {
 
         <div className="relative flex flex-col gap-4 md:flex-row md:items-end md:justify-between md:gap-6">
           <div className="max-w-2xl">
-            <p className="text-sm font-semibold tracking-[0.01em] text-primary-100">
+            <p id="cookie-preferences-title" className="text-sm font-semibold tracking-[0.01em] text-primary-100">
               {t.title}
             </p>
             <p className="mt-1.5 text-xs leading-relaxed text-primary-300 md:text-sm">
@@ -124,20 +149,20 @@ export default function ConsentBanner() {
             <button
               type="button"
               onClick={() => onChoose("rejected")}
-              className="rounded-lg border border-white/15 bg-transparent px-4 py-2 text-xs font-medium text-primary-200 transition-all duration-200 hover:border-white/30 hover:bg-white/5 hover:text-primary-100 md:text-sm"
+              className="rounded-lg border border-gold-400/45 bg-gold-500/10 px-4 py-2 text-xs font-medium text-gold-200 transition-colors hover:border-gold-300/70 hover:bg-gold-500/20 focus-visible:outline focus-visible:outline-2 focus-visible:outline-gold-400 md:text-sm"
             >
               {t.reject}
             </button>
             <button
               type="button"
               onClick={() => onChoose("accepted")}
-              className="rounded-lg border border-gold-400/45 bg-gold-500/20 px-4 py-2 text-xs font-semibold text-gold-200 shadow-[0_0_0_1px_rgba(212,175,55,0.12)_inset] transition-all duration-200 hover:border-gold-300/70 hover:bg-gold-500/30 hover:text-gold-100 md:text-sm"
+              className="rounded-lg border border-gold-400/45 bg-gold-500/10 px-4 py-2 text-xs font-medium text-gold-200 transition-colors hover:border-gold-300/70 hover:bg-gold-500/20 focus-visible:outline focus-visible:outline-2 focus-visible:outline-gold-400 md:text-sm"
             >
               {t.accept}
             </button>
           </div>
         </div>
       </div>
-    </div>
+    </section>
   );
 }

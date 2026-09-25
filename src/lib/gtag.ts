@@ -1,4 +1,4 @@
-const CONSENT_STORAGE_KEY = "cookie-consent-v1";
+import { CONSENT_STORAGE_KEY, GA4_MEASUREMENT_ID, type ConsentChoice } from "./analytics-config";
 
 export type MailToClickLocation =
   | "header_desktop"
@@ -16,6 +16,10 @@ declare global {
   interface Window {
     gtag?: (...args: unknown[]) => void;
     __gtagConfigured?: boolean;
+    __ga4Configured?: boolean;
+    __googleConsentChoice?: ConsentChoice;
+    __grantGoogleConsent?: () => void;
+    __denyGoogleConsent?: () => void;
     gtag_report_contact_form_conversion?: (url?: string) => boolean;
     gtag_report_email_conversion?: (url?: string) => boolean;
     gtag_report_services_conversion?: (url?: string) => boolean;
@@ -94,8 +98,9 @@ export function reportCommunicationConversion(
   );
 }
 
-function hasAnalyticsConsent(): boolean {
+export function hasAnalyticsConsent(): boolean {
   if (typeof window === "undefined") return false;
+  if (window.__googleConsentChoice) return window.__googleConsentChoice === "accepted";
 
   try {
     return localStorage.getItem(CONSENT_STORAGE_KEY) === "accepted";
@@ -110,9 +115,10 @@ export function trackMailToClick({
   linkText,
 }: TrackMailToClickOptions): void {
   if (typeof window === "undefined" || !hasAnalyticsConsent()) return;
-  if (typeof window.gtag !== "function") return;
+  if (!GA4_MEASUREMENT_ID || typeof window.gtag !== "function") return;
 
   window.gtag("event", "mailTo", {
+    send_to: GA4_MEASUREMENT_ID,
     event_category: "contact",
     event_label: email,
     link_url: `mailto:${email}`,

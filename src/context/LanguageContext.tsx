@@ -9,6 +9,8 @@ import {
 } from "react";
 import { translations } from "@/lib/translations";
 import { Locale, isValidLocale, isRtl } from "@/lib/locale";
+import { usePathname } from "next/navigation";
+import { isBookPath } from "@/lib/analytics-config";
 
 interface LanguageContextType {
   locale: Locale;
@@ -26,28 +28,36 @@ export function LanguageProvider({
   initialLocale?: Locale;
 }) {
   const [locale, setLocaleState] = useState<Locale>(initialLocale ?? "en");
+  const pathname = usePathname();
+  const effectiveLocale = isBookPath(pathname) ? "fr" : locale;
 
   useEffect(() => {
-    const saved = localStorage.getItem("locale");
-    if (saved && isValidLocale(saved)) {
-      setLocaleState(saved);
+    try {
+      const saved = localStorage.getItem("locale");
+      if (saved && isValidLocale(saved)) setLocaleState(saved);
+    } catch {
+      // Keep the route language when browser storage is unavailable.
     }
   }, []);
 
   useEffect(() => {
-    document.documentElement.lang = locale;
-    document.documentElement.dir = isRtl(locale) ? "rtl" : "ltr";
-  }, [locale]);
+    document.documentElement.lang = effectiveLocale;
+    document.documentElement.dir = isRtl(effectiveLocale) ? "rtl" : "ltr";
+  }, [effectiveLocale]);
 
   const setLocale = (newLocale: Locale) => {
     setLocaleState(newLocale);
-    localStorage.setItem("locale", newLocale);
+    try {
+      localStorage.setItem("locale", newLocale);
+    } catch {
+      // The selected language still applies to the current page.
+    }
   };
 
-  const t = translations[locale];
+  const t = translations[effectiveLocale];
 
   return (
-    <LanguageContext.Provider value={{ locale, setLocale, t }}>
+    <LanguageContext.Provider value={{ locale: effectiveLocale, setLocale, t }}>
       {children}
     </LanguageContext.Provider>
   );
@@ -60,4 +70,3 @@ export function useLanguage() {
   }
   return context;
 }
-

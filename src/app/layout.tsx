@@ -1,23 +1,14 @@
 import type { Metadata } from "next";
-import dynamic from "next/dynamic";
+import { Suspense } from "react";
 import "./globals.css";
 import { LanguageProvider } from "@/context/LanguageContext";
 import PreloadResources from "@/components/PreloadResources";
 import ConsentBanner from "@/components/ConsentBanner";
 import GtagMailToTracker from "@/components/GtagMailToTracker";
 import { Toaster } from "sonner";
-
-// Dynamic imports for client-side only components (reduces initial bundle)
-const SmoothScrollProvider = dynamic(
-  () => import("@/components/SmoothScrollProvider"),
-  { ssr: false }
-);
-
-
-const LoadingScreen = dynamic(
-  () => import("@/components/LoadingScreen"),
-  { ssr: false }
-);
+import SiteExperience from "@/components/SiteExperience";
+import AnalyticsPageViews from "@/components/AnalyticsPageViews";
+import { getAnalyticsBootstrap } from "@/lib/analytics-bootstrap";
 
 export const metadata: Metadata = {
   title: {
@@ -166,119 +157,9 @@ export default function RootLayout({
   return (
     <html lang="en">
       <head>
-        {/* Google tag (gtag.js) */}
         <script
-          async
-          src="https://www.googletagmanager.com/gtag/js?id=AW-18259962578"
-        />
-        <script
-          dangerouslySetInnerHTML={{
-            __html: `
-              window.dataLayer = window.dataLayer || [];
-              function gtag(){dataLayer.push(arguments);}
-              var GOOGLE_TAG_ID = 'AW-18259962578';
-              var CONSENT_KEY = 'cookie-consent-v1';
-              var consentDenied = {
-                ad_storage: 'denied',
-                analytics_storage: 'denied',
-                ad_user_data: 'denied',
-                ad_personalization: 'denied'
-              };
-              var consentGranted = {
-                ad_storage: 'granted',
-                analytics_storage: 'granted',
-                ad_user_data: 'granted',
-                ad_personalization: 'granted'
-              };
-
-              gtag('consent', 'default', consentDenied);
-              gtag('js', new Date());
-              gtag('config', GOOGLE_TAG_ID);
-
-              window.__grantGoogleConsent = function() {
-                gtag('consent', 'update', consentGranted);
-              };
-
-              window.__denyGoogleConsent = function() {
-                gtag('consent', 'update', consentDenied);
-              };
-
-              try {
-                var savedConsent = localStorage.getItem(CONSENT_KEY);
-                if (savedConsent === 'accepted') {
-                  window.__grantGoogleConsent();
-                } else if (savedConsent === 'rejected') {
-                  window.__denyGoogleConsent();
-                }
-              } catch (e) {}
-            `,
-          }}
-        />
-        <script
-          dangerouslySetInnerHTML={{
-            __html: `
-              function gtag_report_contact_form_conversion(url) {
-                var callback = function () {
-                  if (typeof(url) != 'undefined') { window.location = url; }
-                };
-                gtag('event', 'conversion', {
-                  'send_to': 'AW-18259962578/6YVFCOqB48gcENLVg4NE',
-                  'value': 1.0,
-                  'currency': 'AED',
-                  'event_callback': callback
-                });
-                return false;
-              }
-              function gtag_report_email_conversion(url) {
-                var callback = function () {
-                  if (typeof(url) != 'undefined') { window.location = url; }
-                };
-                gtag('event', 'conversion', {
-                  'send_to': 'AW-18259962578/L1kyCJC258gcENLVg4NE',
-                  'value': 1.0,
-                  'currency': 'AED',
-                  'event_callback': callback
-                });
-                return false;
-              }
-              function gtag_report_services_conversion(url) {
-                var callback = function () {
-                  if (typeof(url) != 'undefined') { window.location = url; }
-                };
-                gtag('event', 'conversion', {
-                  'send_to': 'AW-18259962578/qEV9COaX6MgcENLVg4NE',
-                  'value': 1.0,
-                  'currency': 'AED',
-                  'event_callback': callback
-                });
-                return false;
-              }
-              function gtag_report_biography_conversion(url) {
-                var callback = function () {
-                  if (typeof(url) != 'undefined') { window.location = url; }
-                };
-                gtag('event', 'conversion', {
-                  'send_to': 'AW-18259962578/8YsdCPva6MgcENLVg4NE',
-                  'value': 1.0,
-                  'currency': 'AED',
-                  'event_callback': callback
-                });
-                return false;
-              }
-              function gtag_report_communication_conversion(url) {
-                var callback = function () {
-                  if (typeof(url) != 'undefined') { window.location = url; }
-                };
-                gtag('event', 'conversion', {
-                  'send_to': 'AW-18259962578/3xT4CLbX6MgcENLVg4NE',
-                  'value': 1.0,
-                  'currency': 'AED',
-                  'event_callback': callback
-                });
-                return false;
-              }
-            `,
-          }}
+          id="google-consent-bootstrap"
+          dangerouslySetInnerHTML={{ __html: getAnalyticsBootstrap() }}
         />
 
         {/* Inline script for immediate preload - executes before React hydration */}
@@ -286,7 +167,7 @@ export default function RootLayout({
           dangerouslySetInnerHTML={{
             __html: `
               (function() {
-                document.documentElement.lang = location.pathname.startsWith('/ar') ? 'ar' : location.pathname.startsWith('/fr') ? 'fr' : 'en';
+                document.documentElement.lang = location.pathname.startsWith('/ar') ? 'ar' : (location.pathname.startsWith('/fr') || location.pathname === '/livre' || location.pathname.startsWith('/livre/')) ? 'fr' : 'en';
                 document.documentElement.dir = location.pathname.startsWith('/ar') ? 'rtl' : 'ltr';
                 if (!document.querySelector('link[rel="preload"][href="/only_gold_logo.webp"]')) {
                   const link1 = document.createElement('link');
@@ -313,10 +194,10 @@ export default function RootLayout({
       <body className="antialiased">
         <PreloadResources />
         <LanguageProvider initialLocale="en">
-          <LoadingScreen />
-          <SmoothScrollProvider>
-            {children}
-          </SmoothScrollProvider>
+          <SiteExperience>{children}</SiteExperience>
+          <Suspense fallback={null}>
+            <AnalyticsPageViews />
+          </Suspense>
           <ConsentBanner />
           <GtagMailToTracker />
         </LanguageProvider>
