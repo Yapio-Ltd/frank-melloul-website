@@ -119,16 +119,28 @@ test("tag failures and missing configuration still navigate immediately", () => 
   }
 });
 
-test("legacy mode still waits for an unknown consent choice", (t) => {
-  t.mock.timers.enable({ apis: ["setTimeout"] });
-  startBookRedirect({
-    retailer: "fnac",
-    measurementId: "G-TEST1234",
-    gtag: () => assert.fail("must not send without consent"),
-    navigate: () => assert.fail("must wait for a choice when the counter is disabled"),
-  });
-  t.mock.timers.tick(BOOK_REDIRECT_TIMEOUT_MS * 2);
-});
+for (const retailer of Object.keys(BOOK_RETAILERS)) {
+  for (const consentChoice of [undefined, "rejected"]) {
+    for (const counterOptions of [{}, { counterEnabled: false }]) {
+      const flag = "counterEnabled" in counterOptions ? "false" : "omitted";
+      test(`${retailer}: ${consentChoice ?? "unknown"} consent redirects immediately without GA when the counter flag is ${flag}`, (t) => {
+        t.mock.timers.enable({ apis: ["setTimeout"] });
+        const navigations = [];
+        startBookRedirect({
+          retailer,
+          consentChoice,
+          ...counterOptions,
+          measurementId: "G-TEST1234",
+          gtag: () => assert.fail("must not send without accepted consent"),
+          navigate: (url) => navigations.push(url),
+        });
+        assert.deepEqual(navigations, [BOOK_RETAILERS[retailer].url]);
+        t.mock.timers.tick(BOOK_REDIRECT_TIMEOUT_MS * 2);
+        assert.deepEqual(navigations, [BOOK_RETAILERS[retailer].url], "No delayed second navigation");
+      });
+    }
+  }
+}
 
 for (const retailer of Object.keys(BOOK_RETAILERS)) {
   test(`${retailer}: feature flag selects the same-origin counter only when enabled`, () => {

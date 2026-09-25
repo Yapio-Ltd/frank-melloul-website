@@ -5,7 +5,7 @@ import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import { useLanguage } from "@/context/LanguageContext";
 import { buildLocalizedPath, Locale } from "@/lib/locale";
-import { BOOK_COUNTER_ENABLED, CONSENT_STORAGE_KEY, isBookRetailerPath, type ConsentChoice } from "@/lib/analytics-config";
+import { CONSENT_STORAGE_KEY, isBookRetailerPath, type ConsentChoice } from "@/lib/analytics-config";
 import "@/lib/gtag";
 
 const consentTranslations: Record<
@@ -98,7 +98,7 @@ export default function ConsentBanner() {
     setVisible(false);
   };
 
-  if (!initialized || (BOOK_COUNTER_ENABLED && isBookRetailerPath(pathname))) return null;
+  if (!initialized || isBookRetailerPath(pathname)) return null;
   if (!visible) {
     return (
       <button

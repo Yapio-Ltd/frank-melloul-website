@@ -66,9 +66,6 @@ export function startBookRedirect({
   gtag,
   navigate,
 }: BookRedirectOptions): () => void {
-  // Keep the existing consent interstitial until the server counter is enabled.
-  if (!counterEnabled && !consentChoice) return () => {};
-
   const destination = BOOK_RETAILERS[retailer];
   let finished = false;
   let timeout: ReturnType<typeof setTimeout> | undefined;

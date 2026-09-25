@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef } from "react";
 import { BOOK_COUNTER_ENABLED, CONSENT_STORAGE_KEY, GA4_MEASUREMENT_ID, type ConsentChoice } from "@/lib/analytics-config";
 import { BOOK_RETAILERS, bookRedirectUrl, startBookRedirect, type BookRetailer } from "@/lib/book-links";
 
@@ -18,17 +18,15 @@ export default function BookRedirect({ retailer }: { retailer: BookRetailer }) {
   const destination = BOOK_RETAILERS[retailer];
   const started = useRef(false);
   const cancelAutomaticRedirect = useRef<(() => void) | undefined>();
-  const [redirecting, setRedirecting] = useState(false);
 
   useEffect(() => {
     let initialTimer: ReturnType<typeof setTimeout>;
     let cancelRedirect: (() => void) | undefined;
 
     const continueToRetailer = (choice: ConsentChoice | undefined) => {
-      // With the counter enabled, cookie preferences never block the departure.
-      if ((!BOOK_COUNTER_ENABLED && !choice) || started.current) return;
+      // Preferences control measurement, never access to the retailer.
+      if (started.current) return;
       started.current = true;
-      setRedirecting(true);
       cancelRedirect = startBookRedirect({
         retailer,
         measurementId: GA4_MEASUREMENT_ID,
@@ -57,24 +55,31 @@ export default function BookRedirect({ retailer }: { retailer: BookRetailer }) {
     };
     cancelAutomaticRedirect.current = cancelPending;
 
+    const onLinkNavigation = (event: MouseEvent) => {
+      if (event.defaultPrevented || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+      const link = event.target instanceof Element ? event.target.closest<HTMLAnchorElement>("a[href]") : null;
+      if (!link || link.hasAttribute("download") || (link.target && link.target !== "_self")) return;
+      // A visitor choosing another page takes priority over a late GA callback.
+      started.current = true;
+      cancelPending();
+    };
+    document.addEventListener("click", onLinkNavigation);
+
     return () => {
       cancelPending();
       cancelAutomaticRedirect.current = undefined;
       window.removeEventListener("google-consent-change", onConsentChange);
+      document.removeEventListener("click", onLinkNavigation);
     };
   }, [retailer]);
 
   return (
     <>
       <p aria-live="polite" className="mt-6 text-base leading-relaxed text-primary-200">
-        {redirecting || BOOK_COUNTER_ENABLED
-          ? `Redirection vers ${destination.name}…`
-          : `Votre livre vous attend sur ${destination.name}.`}
+        Redirection vers {destination.name}…
       </p>
       <p className="mt-3 text-sm leading-relaxed text-primary-300">
-        {redirecting || BOOK_COUNTER_ENABLED
-          ? "Si la page ne s’ouvre pas, utilisez le lien ci-dessous."
-          : "Choisissez vos préférences de confidentialité pour continuer automatiquement, ou accédez directement au livre ci-dessous."}
+        Si la page ne s’ouvre pas, utilisez le lien ci-dessous.
       </p>
       <a
         href={bookRedirectUrl(retailer, BOOK_COUNTER_ENABLED)}
