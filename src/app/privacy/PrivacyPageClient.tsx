@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useLanguage } from "@/context/LanguageContext";
 import { buildLocalizedPath } from "@/lib/locale";
+import { BOOK_COUNTER_ENABLED } from "@/lib/analytics-config";
 
 const privacyContent = {
   en: {
@@ -28,7 +29,8 @@ const privacyContent = {
       },
       {
         title: "5. Cookies",
-        body: "Google measurement tags load only after you accept cookies. Once configured, Google Analytics 4 measures pages visited and clicks, including departures to Fnac or Amazon through our book links; Google Ads measures advertising conversions on this Site. These book links do not tell us whether you complete a purchase on a retailer’s website. Your choice is stored in your browser when storage is available. You can accept or decline measurement and change your choice using the ‘Cookies’ button at the bottom of the page. Declining does not prevent you from using the book links. Independently of Google, the book redirect counter stores only a daily total for each retailer in our Supabase database. It uses no visitor cookie or identifier and does not record IP addresses, referrers or campaign parameters in that counter. These aggregate totals are not sent to Google Analytics. They count redirect requests, not unique people or purchases.",
+        body: "Google measurement tags load only after you accept cookies. Once configured, Google Analytics 4 measures pages visited and clicks, including departures to Fnac or Amazon through our book links; Google Ads measures advertising conversions on this Site. These book links do not tell us whether you complete a purchase on a retailer’s website. Your choice is stored in your browser when storage is available. You can accept or decline measurement and change your choice using the ‘Cookies’ button at the bottom of the page. Declining does not prevent you from using the book links.",
+        counterBody: "Independently of Google, the book redirect counter stores only a daily total for each retailer in our Supabase database. It uses no visitor cookie or identifier and does not record IP addresses, referrers or campaign parameters in that counter. These aggregate totals are not sent to Google Analytics. They count redirect requests, not unique people or purchases.",
         linkLabel: "How Google uses information from sites that use its services",
       },
       {
@@ -76,7 +78,8 @@ const privacyContent = {
       },
       {
         title: "5. Cookies",
-        body: "Les balises de mesure de Google sont chargées uniquement après votre acceptation des cookies. Une fois configuré, Google Analytics 4 mesure les pages consultées et les clics, notamment les départs vers la Fnac ou Amazon via nos liens vers le livre ; Google Ads mesure les conversions publicitaires sur ce Site. Ces liens ne nous indiquent pas si vous achetez ensuite le livre sur le site du libraire. Votre choix est enregistré dans votre navigateur lorsque le stockage est disponible. Vous pouvez accepter ou refuser la mesure et modifier votre choix avec le bouton « Cookies » en bas de page. Le refus n’empêche pas d’utiliser les liens vers le livre. Indépendamment de Google, le compteur des redirections du livre conserve uniquement un total quotidien par libraire dans notre base Supabase. Ce compteur n’utilise aucun cookie ni identifiant de visiteur et n’enregistre ni adresse IP, ni page d’origine, ni paramètre de campagne. Ces totaux agrégés ne sont pas transmis à Google Analytics. Ils comptabilisent les demandes de redirection, pas des personnes uniques ni des achats.",
+        body: "Les balises de mesure de Google sont chargées uniquement après votre acceptation des cookies. Une fois configuré, Google Analytics 4 mesure les pages consultées et les clics, notamment les départs vers la Fnac ou Amazon via nos liens vers le livre ; Google Ads mesure les conversions publicitaires sur ce Site. Ces liens ne nous indiquent pas si vous achetez ensuite le livre sur le site du libraire. Votre choix est enregistré dans votre navigateur lorsque le stockage est disponible. Vous pouvez accepter ou refuser la mesure et modifier votre choix avec le bouton « Cookies » en bas de page. Le refus n’empêche pas d’utiliser les liens vers le livre.",
+        counterBody: "Indépendamment de Google, le compteur des redirections du livre conserve uniquement un total quotidien par libraire dans notre base Supabase. Ce compteur n’utilise aucun cookie ni identifiant de visiteur et n’enregistre ni adresse IP, ni page d’origine, ni paramètre de campagne. Ces totaux agrégés ne sont pas transmis à Google Analytics. Ils comptabilisent les demandes de redirection, pas des personnes uniques ni des achats.",
         linkLabel: "Comment Google utilise les informations des sites qui font appel à ses services",
       },
       {
@@ -124,7 +127,8 @@ const privacyContent = {
       },
       {
         title: "5. ملفات تعريف الارتباط",
-        body: "لا تُحمَّل أدوات القياس من Google إلا بعد قبولكم ملفات تعريف الارتباط. بعد إعداده، يقيس Google Analytics 4 الصفحات التي تزورونها والنقرات، بما فيها الانتقال إلى Fnac أو Amazon عبر روابط الكتاب على موقعنا؛ ويقيس Google Ads التحويلات الإعلانية على هذا الموقع. لا تُخبرنا هذه الروابط بما إذا كنتم قد اشتريتم الكتاب لاحقاً على موقع البائع. يُحفظ اختياركم في المتصفح عندما يكون التخزين متاحاً. يمكنكم قبول القياس أو رفضه وتغيير اختياركم باستخدام زر «ملفات الارتباط» أسفل الصفحة. لا يمنع الرفض استخدام روابط الكتاب. وبشكل مستقل عن Google، يحتفظ عدّاد تحويلات روابط الكتاب بإجمالي يومي فقط لكل بائع في قاعدة بيانات Supabase الخاصة بنا. لا يستخدم هذا العدّاد ملفات تعريف ارتباط أو معرّفات للزوار، ولا يسجّل عناوين IP أو الصفحات المرجعية أو معلمات الحملات. لا تُرسَل هذه المجاميع إلى Google Analytics. وهي تحصي طلبات التحويل، لا الأشخاص الفريدين أو المشتريات.",
+        body: "لا تُحمَّل أدوات القياس من Google إلا بعد قبولكم ملفات تعريف الارتباط. بعد إعداده، يقيس Google Analytics 4 الصفحات التي تزورونها والنقرات، بما فيها الانتقال إلى Fnac أو Amazon عبر روابط الكتاب على موقعنا؛ ويقيس Google Ads التحويلات الإعلانية على هذا الموقع. لا تُخبرنا هذه الروابط بما إذا كنتم قد اشتريتم الكتاب لاحقاً على موقع البائع. يُحفظ اختياركم في المتصفح عندما يكون التخزين متاحاً. يمكنكم قبول القياس أو رفضه وتغيير اختياركم باستخدام زر «ملفات الارتباط» أسفل الصفحة. لا يمنع الرفض استخدام روابط الكتاب.",
+        counterBody: "وبشكل مستقل عن Google، يحتفظ عدّاد تحويلات روابط الكتاب بإجمالي يومي فقط لكل بائع في قاعدة بيانات Supabase الخاصة بنا. لا يستخدم هذا العدّاد ملفات تعريف ارتباط أو معرّفات للزوار، ولا يسجّل عناوين IP أو الصفحات المرجعية أو معلمات الحملات. لا تُرسَل هذه المجاميع إلى Google Analytics. وهي تحصي طلبات التحويل، لا الأشخاص الفريدين أو المشتريات.",
         linkLabel: "كيفية استخدام Google للمعلومات الواردة من المواقع التي تستخدم خدماتها",
       },
       {
@@ -177,6 +181,9 @@ export default function PrivacyPageClient() {
                 {section.title}
               </h2>
               <p>{section.body}</p>
+              {BOOK_COUNTER_ENABLED && "counterBody" in section && (
+                <p className="mt-3">{section.counterBody}</p>
+              )}
               {"linkLabel" in section && (
                 <p className="mt-3">
                   <a

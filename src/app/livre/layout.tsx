@@ -1,36 +1,37 @@
 import type { Metadata } from "next";
+import styles from "./book.module.css";
 
 export const metadata: Metadata = {
   title: "La bascule — Frank Melloul",
-  description: "Retrouvez La bascule, le livre de Frank Melloul, chez votre libraire en ligne.",
+  description: "Découvrez La bascule, Les coulisses du nouveau Moyen-Orient, de Frank Melloul. Éditions de l’Observatoire. Parution le 1er octobre 2026.",
   robots: { index: false, follow: true },
   openGraph: {
     title: "La bascule — Frank Melloul",
-    description: "Choisissez votre libraire pour découvrir le livre de Frank Melloul.",
-    locale: "fr_FR",
-    type: "website",
-    url: "/livre",
+    description: "Les coulisses du nouveau Moyen-Orient. Découvrez le livre et retrouvez-le chez votre libraire.",
+    locale: "fr_FR", type: "website", url: "/livre",
+    images: [{ url: "/book/la-bascule-cover.jpg", width: 316, height: 500, alt: "Couverture de La bascule, de Frank Melloul" }],
   },
   twitter: {
-    card: "summary",
-    title: "La bascule — Frank Melloul",
-    description: "Retrouvez le livre de Frank Melloul chez votre libraire en ligne.",
+    card: "summary_large_image", title: "La bascule — Frank Melloul",
+    description: "Les coulisses du nouveau Moyen-Orient. Éditions de l’Observatoire.",
+    images: ["/book/la-bascule-cover.jpg"],
   },
 };
 
 export default function BookLayout({ children }: { children: React.ReactNode }) {
   return (
-    <main lang="fr" dir="ltr" className="min-h-screen bg-navy-950 px-6 pb-80 pt-16 text-primary-50 sm:pt-24 md:pb-56">
-      <div className="mx-auto max-w-xl">
-        <a href="/fr" className="text-xs uppercase tracking-[0.2em] text-gold-300 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-gold-300">
-          Melloul &amp; Partners
-        </a>
-        <div className="mt-16 border-t border-gold-500/30 pt-8 sm:mt-20">
-          <p className="text-sm text-primary-300">Frank Melloul</p>
-          <h1 className="mt-3 font-serif text-6xl font-light sm:text-7xl">La bascule</h1>
-          {children}
-        </div>
-      </div>
-    </main>
+    <div lang="fr" dir="ltr" className={styles.bookSite}>
+      <a href="#livre-contenu" className={styles.skipLink}>Aller au contenu</a>
+      <header className={styles.header}>
+        <a href="/fr" className={styles.brand}>Melloul <span>&amp;</span> Partners</a>
+        <a href="/fr" className={styles.siteLink}>Le site de Frank Melloul<svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M6 18 18 6M6 6h12v12" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" /></svg></a>
+      </header>
+      <main id="livre-contenu">{children}</main>
+      <footer className={styles.footer}>
+        <a href="/fr" className={styles.footerBrand}>Melloul &amp; Partners</a>
+        <p>Diplomatie, influence et stratégie.</p>
+        <a href="/fr/privacy">Confidentialité</a>
+      </footer>
+    </div>
   );
 }

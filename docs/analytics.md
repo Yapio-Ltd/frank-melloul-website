@@ -1,6 +1,6 @@
 # Mesure des liens du livre
 
-État au 25 septembre 2026 : la version initiale `96faa9b` est en production. La réception de `page_view` et de deux événements `book_outbound_click` a été vérifiée dans Google Analytics : `book_id=la_bascule` apparaît deux fois, et `retailer=fnac` et `retailer=amazon` une fois chacun. L’utilisateur a accepté les conditions Google Analytics dans le navigateur. L’extension de comptage agrégé sans cookies est validée localement, mais son code n’est pas déployé. La migration Supabase et ses restrictions d’accès sont vérifiées. Aucun jeton n’a encore été généré et aucun indicateur Render n’a été activé ; l’approbation demandée dans le navigateur reste en attente.
+État au 25 septembre 2026 : la version initiale `96faa9b` a été mise en production. La réception de `page_view` et de deux événements `book_outbound_click` a été vérifiée dans Google Analytics : `book_id=la_bascule` apparaît deux fois, et `retailer=fnac` et `retailer=amazon` une fois chacun. L’utilisateur a accepté les conditions Google Analytics dans le navigateur. La publication de la nouvelle présentation de `/livre` inclut le code du compteur agrégé, conservé désactivé ; cette publication ne vaut pas activation du comptage. La migration Supabase et ses restrictions d’accès sont vérifiées. Aucun jeton n’a encore été généré et aucun indicateur Render n’a été activé ; l’approbation demandée dans le navigateur reste en attente. La mise en ligne de la nouvelle présentation doit être confirmée séparément.
 
 ## Liens du livre
 
@@ -39,6 +39,7 @@ Les fichiers principaux sont `src/lib/analytics-config.ts`, `src/lib/analytics-b
 - Le site émet explicitement `page_view` pour les visites et changements de route consentis, sauf les pages `/admin`. Le paramètre `send_page_view` de la configuration GA4 est désactivé pour éviter une page vue automatique au chargement.
 - Tant que le compteur agrégé est désactivé, les routes des libraires conservent le fonctionnement initial : un choix accepté déclenche la mesure puis la redirection, un refus redirige sans événement GA4, et l’absence de choix affiche la bannière avec un lien direct utilisable sans accepter. Le lien fonctionne sans JavaScript.
 - Une fois le compteur agrégé activé, les routes `/livre/fnac` et `/livre/amazon` ne demandent plus de choix de cookies et passent par `/go/fnac` ou `/go/amazon`. Sans acceptation préalable, la redirection est immédiate et aucun événement GA4 n’est émis. Avec acceptation préalable, l’événement GA4 précède la même redirection `/go`. La bannière reste disponible sur `/livre` et le reste du site.
+- Les trois versions de la politique de confidentialité affichent le paragraphe sur le compteur agrégé uniquement lorsque `NEXT_PUBLIC_BOOK_COUNTER_ENABLED=true`. Avec cet indicateur désactivé, elles décrivent uniquement la mesure Google soumise au consentement.
 - La redirection attend le rappel de la balise, avec une limite indépendante de 1,5 seconde si la balise est bloquée ou ne répond pas. Le rappel et le délai ne peuvent provoquer qu’une seule navigation. Les rediffusions d’effet React et les notifications répétées de consentement ne doivent pas doubler l’événement.
 
 L’événement `book_outbound_click` est envoyé uniquement avec consentement et identifiant GA4, avec un `send_to` explicite :
@@ -69,7 +70,7 @@ L’activation exige les deux indicateurs et le secret serveur :
 
 Le serveur réutilise `NEXT_PUBLIC_SUPABASE_URL` et `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_DEFAULT_KEY`. Il ne nécessite aucune clé `service_role`. Le jeton aléatoire doit être généré hors du navigateur avec au moins 32 octets d’aléa ; seul son condensat SHA-256 est enregistré dans le schéma privé de la base. Ce jeton donne accès à l’incrément, pas à la lecture, la remise à zéro ni la suppression des totaux.
 
-La migration `scripts/add-book-redirect-counter.sql` a été exécutée dans l’interface Supabase avec le résultat « Success. No rows returned ». Le provisionnement du condensat via `scripts/provision-book-counter-token.sql`, la configuration du jeton et des indicateurs Render, puis le déploiement de cette extension restent à valider. L’absence d’activation conserve le comportement initial du client ; un appel direct à `/go` continue de rediriger même si son compteur est désactivé ou indisponible.
+La migration `scripts/add-book-redirect-counter.sql` a été exécutée dans l’interface Supabase avec le résultat « Success. No rows returned ». Le code peut être publié avec les indicateurs désactivés. Le provisionnement du condensat via `scripts/provision-book-counter-token.sql`, la configuration du jeton et des indicateurs Render, puis la reconstruction nécessaire à l’activation restent soumis à l’approbation en attente. L’absence d’activation conserve le comportement initial du client ; après publication des routes `/go`, un appel direct à celles-ci redirige même si leur compteur est désactivé ou indisponible.
 
 Contrôles d’accès effectués : RLS est activé sur les deux tables, `public.book_redirect_daily_counts` et `book_counter_private.credentials`. Le rôle `anon` n’a de droit ni SELECT ni INSERT sur ces tables. Les essais HTTP publics ont confirmé un refus `401 / 42501` pour la fonction d’incrément avec un jeton invalide et pour la lecture directe de la table des totaux. Ces contrôles ne valident pas encore un incrément avec un jeton autorisé, puisqu’aucun jeton n’a été créé.
 
@@ -101,6 +102,7 @@ Cette liste décrit uniquement les réglages vérifiés. Elle ne confirme aucune
 - [x] Réception de `page_view` et de deux événements `book_outbound_click` vérifiée ; `book_id=la_bascule` apparaît deux fois, avec un départ `retailer=fnac` et un départ `retailer=amazon`.
 - [x] Migration du compteur agrégé exécutée dans Supabase sans erreur affichée.
 - [x] RLS et absence de droits SELECT/INSERT du rôle `anon` vérifiés sur les deux tables ; lecture publique des totaux et appel avec jeton invalide refusés par HTTP `401 / 42501`.
+- [ ] Confirmer la publication de la nouvelle présentation de `/livre` avec le code du compteur présent mais désactivé.
 - [ ] Finaliser le jeton limité au compteur et les paramètres Render après approbation, puis déployer l’extension avec ses deux indicateurs activés.
 - [ ] Vérifier en production le passage sans attente par `/go`, l’incrément des totaux pour les deux libraires, l’absence de GA4 sans consentement et une seule requête `/go` lors d’un clic sur le lien de secours pendant l’attente de GA4. Confirmer également l’attribution d’un lien UTM dans GA4 ; les totaux SQL ne mesurent pas les campagnes.
 
