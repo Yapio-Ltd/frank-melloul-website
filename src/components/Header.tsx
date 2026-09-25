@@ -92,6 +92,10 @@ export default function Header() {
         );
       },
     },
+    {
+      name: t.nav.book,
+      href: "/livre",
+    },
   ];
 
   return (
@@ -107,9 +111,9 @@ export default function Header() {
         transition={{ duration: 0.6, delay: 1, ease: [0.76, 0, 0.24, 1] }}
       >
         <div className="container mx-auto px-6 md:px-12 lg:px-20">
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between gap-2 sm:gap-6">
             {/* Logo */}
-            <Link href={basePrefix || "/"} className="relative z-10">
+            <Link href={basePrefix || "/"} className="relative z-10 shrink-0">
               <motion.div
                 whileHover={{ scale: 1.02 }}
                 transition={{ duration: 0.3 }}
@@ -121,13 +125,13 @@ export default function Header() {
                   height={120}
                   priority
                   unoptimized
-                  className="object-contain"
+                  className="w-20 sm:w-[120px] object-contain"
                 />
               </motion.div>
             </Link>
 
             {/* Desktop Navigation */}
-            <nav className="hidden md:flex items-center gap-12">
+            <nav className="hidden xl:flex items-center gap-5 2xl:gap-8 whitespace-nowrap">
               {navItems.map((item, index) => (
                 <motion.div
                   key={item.href}
@@ -147,7 +151,7 @@ export default function Header() {
             </nav>
 
             {/* Right side: Language Switcher + Contact */}
-            <div className="hidden md:flex items-center gap-6">
+            <div className="hidden xl:flex items-center gap-4 shrink-0">
               <motion.div
                 initial={hasAnimated ? false : { opacity: 0, y: -20 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -175,10 +179,13 @@ export default function Header() {
             </div>
 
             {/* Mobile Menu Button */}
-            <div className="md:hidden flex items-center gap-4">
+            <div className="xl:hidden flex items-center gap-2 sm:gap-4">
               <LanguageSwitcher />
               <motion.button
                 className="relative z-10 w-10 h-10 flex flex-col items-center justify-center gap-1.5"
+                aria-label="Menu"
+                aria-expanded={isMobileMenuOpen}
+                aria-controls="mobile-navigation"
                 onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
                 initial={hasAnimated ? false : { opacity: 0 }}
                 animate={{ opacity: 1 }}
@@ -217,13 +224,15 @@ export default function Header() {
       <AnimatePresence>
         {isMobileMenuOpen && (
           <motion.div
-            className="fixed inset-0 bg-navy-950 z-40 flex items-center justify-center"
+            id="mobile-navigation"
+            data-lenis-prevent
+            className="fixed inset-0 bg-navy-950 z-40 overflow-y-auto pt-44 pb-10 xl:hidden"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.4 }}
           >
-            <nav className="flex flex-col items-center gap-8">
+            <nav className="min-h-full flex flex-col items-center justify-center gap-6 sm:gap-8">
               {navItems.map((item, index) => (
                 <motion.div
                   key={item.name}

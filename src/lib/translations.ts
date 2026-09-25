@@ -10,6 +10,7 @@ export const translations = {
       about: "About",
       biography: "Biography",
       communication: "Communication",
+      book: "The book",
       contact: "Contact",
     },
     // Hero
@@ -151,6 +152,7 @@ export const translations = {
       about: "À Propos",
       biography: "Biographie",
       communication: "Communication",
+      book: "Le livre",
       contact: "Contact",
     },
     // Hero
@@ -291,6 +293,7 @@ export const translations = {
       about: "من نحن",
       biography: "السيرة الذاتية",
       communication: "التواصل",
+      book: "الكتاب",
       contact: "اتصل بنا",
     },
     hero: {
@@ -419,4 +422,3 @@ export const translations = {
 } as const;
 
 export type Translations = typeof translations[Locale];
-
