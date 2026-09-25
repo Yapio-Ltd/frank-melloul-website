@@ -1,10 +1,11 @@
 "use client";
 
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import { useLanguage } from "@/context/LanguageContext";
 import { buildLocalizedPath, Locale } from "@/lib/locale";
-import { CONSENT_STORAGE_KEY, type ConsentChoice } from "@/lib/analytics-config";
+import { BOOK_COUNTER_ENABLED, CONSENT_STORAGE_KEY, isBookRetailerPath, type ConsentChoice } from "@/lib/analytics-config";
 import "@/lib/gtag";
 
 const consentTranslations: Record<
@@ -48,6 +49,7 @@ const consentTranslations: Record<
 };
 
 export default function ConsentBanner() {
+  const pathname = usePathname();
   const { locale } = useLanguage();
   const t = consentTranslations[locale];
   const [visible, setVisible] = useState(false);
@@ -96,7 +98,7 @@ export default function ConsentBanner() {
     setVisible(false);
   };
 
-  if (!initialized) return null;
+  if (!initialized || (BOOK_COUNTER_ENABLED && isBookRetailerPath(pathname))) return null;
   if (!visible) {
     return (
       <button

@@ -4,6 +4,7 @@ import {
   BOOK_REDIRECT_TIMEOUT_MS,
   BOOK_RETAILERS,
   bookLinkPath,
+  bookRedirectUrl,
   startBookRedirect,
 } from "../src/lib/book-links.ts";
 
@@ -34,7 +35,7 @@ for (const retailer of Object.keys(BOOK_RETAILERS)) {
     const navigations = [];
     startBookRedirect({
       retailer,
-      analyticsConsent: false,
+      consentChoice: "rejected",
       measurementId: "G-TEST1234",
       gtag: () => calls++,
       navigate: (url) => navigations.push(url),
@@ -49,7 +50,7 @@ for (const retailer of Object.keys(BOOK_RETAILERS)) {
     const navigations = [];
     startBookRedirect({
       retailer,
-      analyticsConsent: true,
+      consentChoice: "accepted",
       measurementId: "G-TEST1234",
       gtag: (...args) => { event = args; },
       navigate: (url) => navigations.push(url),
@@ -73,7 +74,7 @@ test("a blocked tag cannot prevent retailer navigation", (t) => {
   const navigations = [];
   startBookRedirect({
     retailer: "fnac",
-    analyticsConsent: true,
+    consentChoice: "accepted",
     measurementId: "G-TEST1234",
     gtag: () => {},
     navigate: (url) => navigations.push(url),
@@ -90,7 +91,7 @@ test("cleanup cancels navigation from both callbacks and timers", (t) => {
   let navigations = 0;
   const cancel = startBookRedirect({
     retailer: "fnac",
-    analyticsConsent: true,
+    consentChoice: "accepted",
     measurementId: "G-TEST1234",
     gtag: (_command, _name, parameters) => { callback = parameters.event_callback; },
     navigate: () => navigations++,
@@ -110,10 +111,80 @@ test("tag failures and missing configuration still navigate immediately", () => 
     const navigations = [];
     startBookRedirect({
       retailer: "amazon",
-      analyticsConsent: true,
+      consentChoice: "accepted",
       ...options,
       navigate: (url) => navigations.push(url),
     });
     assert.deepEqual(navigations, [BOOK_RETAILERS.amazon.url]);
   }
+});
+
+test("legacy mode still waits for an unknown consent choice", (t) => {
+  t.mock.timers.enable({ apis: ["setTimeout"] });
+  startBookRedirect({
+    retailer: "fnac",
+    measurementId: "G-TEST1234",
+    gtag: () => assert.fail("must not send without consent"),
+    navigate: () => assert.fail("must wait for a choice when the counter is disabled"),
+  });
+  t.mock.timers.tick(BOOK_REDIRECT_TIMEOUT_MS * 2);
+});
+
+for (const retailer of Object.keys(BOOK_RETAILERS)) {
+  test(`${retailer}: feature flag selects the same-origin counter only when enabled`, () => {
+    assert.equal(bookRedirectUrl(retailer), BOOK_RETAILERS[retailer].url);
+    assert.equal(bookRedirectUrl(retailer, false), BOOK_RETAILERS[retailer].url);
+    assert.equal(bookRedirectUrl(retailer, true), `/go/${retailer}`);
+  });
+
+  for (const consentChoice of [undefined, "rejected"]) {
+    test(`${retailer}: counter mode redirects immediately with ${consentChoice ?? "unknown"} consent and no GA`, () => {
+      const navigations = [];
+      startBookRedirect({
+        retailer,
+        consentChoice,
+        counterEnabled: true,
+        measurementId: "G-TEST1234",
+        gtag: () => assert.fail("must not send without accepted consent"),
+        navigate: (url) => navigations.push(url),
+      });
+      assert.deepEqual(navigations, [`/go/${retailer}`]);
+    });
+  }
+
+  test(`${retailer}: accepted counter mode measures the final merchant then navigates once via /go`, (t) => {
+    t.mock.timers.enable({ apis: ["setTimeout"] });
+    const events = [];
+    const navigations = [];
+    startBookRedirect({
+      retailer,
+      consentChoice: "accepted",
+      counterEnabled: true,
+      measurementId: "G-TEST1234",
+      gtag: (...args) => events.push(args),
+      navigate: (url) => navigations.push(url),
+    });
+    assert.equal(events.length, 1);
+    assert.equal(events[0][2].link_url, BOOK_RETAILERS[retailer].url);
+    assert.deepEqual(navigations, []);
+    events[0][2].event_callback();
+    events[0][2].event_callback();
+    t.mock.timers.tick(BOOK_REDIRECT_TIMEOUT_MS);
+    assert.deepEqual(navigations, [`/go/${retailer}`]);
+  });
+}
+
+test("counter mode still reaches /go when an accepted visitor blocks the tag", (t) => {
+  t.mock.timers.enable({ apis: ["setTimeout"] });
+  const navigations = [];
+  startBookRedirect({
+    retailer: "fnac",
+    consentChoice: "accepted",
+    counterEnabled: true,
+    measurementId: "G-TEST1234",
+    gtag: () => {},
+    navigate: (url) => navigations.push(url),
+  });
+  t.mock.timers.tick(BOOK_REDIRECT_TIMEOUT_MS);
+  assert.deepEqual(navigations, ["/go/fnac"]);
 });

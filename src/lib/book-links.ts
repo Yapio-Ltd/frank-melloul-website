@@ -1,3 +1,5 @@
+import type { ConsentChoice } from "./analytics-config";
+
 export const BOOK_ID = "la_bascule";
 export const BOOK_REDIRECT_TIMEOUT_MS = 1500;
 
@@ -16,6 +18,10 @@ export const BOOK_RETAILERS = {
 
 export type BookRetailer = keyof typeof BOOK_RETAILERS;
 export type BookSearchParams = Record<string, string | string[] | undefined>;
+
+export function bookRedirectUrl(retailer: BookRetailer, counterEnabled = false): string {
+  return counterEnabled ? `/go/${retailer}` : BOOK_RETAILERS[retailer].url;
+}
 
 const CAMPAIGN_PARAMETERS = [
   "utm_source",
@@ -45,7 +51,8 @@ export function bookLinkPath(
 type BookRedirectOptions = {
   retailer: BookRetailer;
   measurementId?: string;
-  analyticsConsent: boolean;
+  consentChoice?: ConsentChoice;
+  counterEnabled?: boolean;
   gtag?: (...args: unknown[]) => void;
   navigate: (url: string) => void;
 };
@@ -54,10 +61,14 @@ type BookRedirectOptions = {
 export function startBookRedirect({
   retailer,
   measurementId,
-  analyticsConsent,
+  consentChoice,
+  counterEnabled = false,
   gtag,
   navigate,
 }: BookRedirectOptions): () => void {
+  // Keep the existing consent interstitial until the server counter is enabled.
+  if (!counterEnabled && !consentChoice) return () => {};
+
   const destination = BOOK_RETAILERS[retailer];
   let finished = false;
   let timeout: ReturnType<typeof setTimeout> | undefined;
@@ -70,10 +81,10 @@ export function startBookRedirect({
   const finish = () => {
     if (finished) return;
     cancel();
-    navigate(destination.url);
+    navigate(bookRedirectUrl(retailer, counterEnabled));
   };
 
-  if (!analyticsConsent || !measurementId || typeof gtag !== "function") {
+  if (consentChoice !== "accepted" || !measurementId || typeof gtag !== "function") {
     finish();
     return cancel;
   }
